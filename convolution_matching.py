@@ -3,7 +3,7 @@ import math
 import random
 import csv
 import string
-
+import collections
 import numpy as np
 
 import matplotlib
@@ -28,33 +28,102 @@ def read_template(name):
         return t
 
 material = collections.namedtuple('material', 'name peaks template')
-graphene_oxide= materials(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('templates/graphene_oxide'))
+graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('templates/graphene_oxide'))
 materials = {'graphene_oxide': graphene_oxide}
 
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
 # Input: raman spectral data
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
-# think this is redundant
-#class Material(object):
-#    def __init__(self, name):
-#        self.name = string.lower(name) # name of material, will eventually be provided to user via drop down menu or similar
-#        self.material = materials[self.name] # template of the peaks
-
 class FindMaterial(object):
     def __init__(self, material_name, data_filename):
-        self.material_name = string.lower(material_name)
+        self.material_name = material_name
         self.data_filename = data_filename
         self.material = materials[self.material_name]
         self.load_data()
 
     def load_data(self):
         fname = self.data_filename
-        data= pd.read_csv(testfile_name, sep='\t', encoding='utf-8')
+        print("reading data from %s to locate %s" % (fname, self.material_name))
+        data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         # td.columns is the raman wavelength
-        data = td.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
         self.data = data
+        # should be better way to do this, but i can't find it
+        wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
+        for i, col in enumerate(data.columns[2:]):
+            wavelengths[i] = float(col)
+        self.wavelengths = wavelengths
+        print("successfully loaded data")
+
+    def find_indices_of_peak_wavelengths(self):
+        ##TODO - THIS ASSUMES TWO PEAKS!!!
+        lower_bound_1 = self.material.peaks[0][0]
+        upper_bound_1 = self.material.peaks[0][1]
+        lower_bound_2 = self.material.peaks[1][0]
+        upper_bound_2 = self.material.peaks[1][1]
+        cond = (self.wavelengths > lower_bound_1) & (self.wavelengths < upper_bound_1) & 
+             (self.wavelengths > lower_bound_2) & (self.wavelengths < upper_bound_2)
+        self.peak_indices = np.where(cond)
+        if len(self.peak_indices) == 0:
+            raise ValueError("Wavelengths of data set do not include expected peak wavelengths")
+        # to rule out possibility of getting other d peak and weird stuff at beginning,
+        # do +- 200 if powwible
+        if self.peak_indices[0] > 201:
+            self.lowest_index = self.peak_indices[0] - 200
+        else:
+            self.lowest_index = self.peak_indices[0]
+        if self.peak_indices[-1] < len(self.wavelengths) -200:
+            self.highest_index = self.peak_indices[-1] +200
+        else:
+            self.highest_index = self.peak_indices[-1]
+
+
+
+    def prepare_data(self, index):
+        d = self.data.iloc[index].values
+        d = d.reshape((len(d), 1))
+        min_max_scaler = preprocessing.MinMaxScaler()
+        d_scaled = min_max_scaler.fit_transform(d)
+        d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))]
+        return d_final
     
+    def is_match(self, index, upper_bound=270, lower_bound=230):
+        # prepare data
+        to_match = self.prepare_data(index)
+        template = self.material.template
+        conv = scipy.signal.fftconvolve(to_match, template)[len(template):-len(template)]
+        conv_peaks  = scipy.signal.find_peaks(conv, width = 118, prominence = 16)
+        if len(conv_peaks[0]) == 0:
+            return False
+        elif len(conv_peaks[0]) == 1:# & (conv_peaks[0][0] < 270) & (conv_peaks[0][0] > 230):
+            # what if there are multiple convolution peaks? 
+            #### TODO- the bounds will actually be determined by the data
+            # position in convolution is actual match position + size(template)
+            # so to position of convolution peak should be position in data - template length
+            return True
+        return False
+
+    def find_matches(self):
+        number_locations = len(self.data)
+        print("Searching %d locations for %s" % (number_locations, self.material_name))
+        update_flag = int(number_locations/100) # how often to update user
+        matches = []
+        for i in range(number_locations):
+            if i%update_flag == 0:
+                print("Tested %d locations, found %d matches" % (i, len(matches)))
+                match = self.is_match(i)
+                if match == True:
+                    matches.append(i)
+        print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
+        self.matches = matches
+
+    def find_match_positions(self):
+        match_positions = []
+        for match in self.matches:
+            match_positions.append(self.data.x[match], self.data.y[match])
+        self.match_positions = []
+
