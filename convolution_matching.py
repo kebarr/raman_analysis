@@ -133,6 +133,7 @@ class FindMaterial(object):
         mean_non_peaks = np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
         stdev_non_peaks = np.std(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
         #print("mean non peaks: %f stdev non peaks: %f", (mean_non_peaks, stdev_non_peaks))
+        # TODO- WHEN STANDARD DEVIATION ISN'T VERY BIG, THIS IS NOT SUFFICIENT- TRY 2* WITH CYRILLS DATA- finds only 2 matches
         if mean_peaks > mean_non_peaks+stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             return True
         else:
@@ -154,17 +155,17 @@ class FindMaterial(object):
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
-        update_flag = int(number_locations/100) # how often to update user
+        update_flag = int(number_locations/25) # how often to update user
         matches = []
         for i in range(number_locations):
-            #if i%update_flag == 0:
-            #    print("Tested %d locations, found %d matches" % (i, len(matches_inverted)))
+            if i%update_flag == 0:
+                print("Tested %d locations, found %d matches" % (i, len(matches)))
             match = self.is_match(i)
             if match == True:
                 matches.append(i)
                 #self.data.iloc[i].plot()
                 #plt.show()
-        print("Finished finding matches inverted, found %d locations positive for %s" % (len(matches_inverted), self.material_name))
+        print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
         self.matches = matches
 
 
