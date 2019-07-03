@@ -138,6 +138,18 @@ class FindMaterial(object):
         else:
             return False
 
+    def is_match(self, index):
+        if self.check_match(index):
+            to_match = self.prepare_data(index)
+            template = self.material.template
+            conv = scipy.signal.fftconvolve(to_match, template)
+            conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
+            if len(conv_peaks[0]) == 0:
+                return False
+            elif len(conv_peaks[0]) > 0:
+                return True
+        return False
+
     def find_matches(self):
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
@@ -145,22 +157,23 @@ class FindMaterial(object):
         update_flag = int(number_locations/100) # how often to update user
         matches = []
         for i in range(number_locations):
-            if i%update_flag == 0:
-                print("Tested %d locations, found %d matches" % (i, len(matches)))
+            #if i%update_flag == 0:
+            #    print("Tested %d locations, found %d matches" % (i, len(matches_inverted)))
             match = self.is_match(i)
             if match == True:
                 matches.append(i)
                 #self.data.iloc[i].plot()
-                #åplt.show()
-        print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
+                #plt.show()
+        print("Finished finding matches inverted, found %d locations positive for %s" % (len(matches_inverted), self.material_name))
         self.matches = matches
+
 
     def find_match_positions(self):
         match_positions = []
         for match in self.matches:
             match_scaled = match + self.lowest_index
-            match_positions.append(self.data.x[match_scaled], self.data.y[match_scaled])
-        self.match_positions = []
+            match_positions.append((self.data.x[match_scaled], self.data.y[match_scaled]))
+        self.match_positions = match_positions
 
     def plot_matches(self):
         for match in self.matches:
