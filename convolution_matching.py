@@ -31,16 +31,38 @@ material = collections.namedtuple('material', 'name peaks template')
 graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('templates/graphene_oxide'))
 materials = {'graphene_oxide': graphene_oxide}
 
+# function to baseline data
+def baseline_als(y, lam=10**6, p=0.01, niter=10):
+    # https://stackoverflow.com/questions/29156532/python-baseline-correction-library
+    # work out what this actuallly does
+    L = len(y)
+    D = scipy.sparse.csc_matrix(np.diff(np.eye(L), 2))
+    w = np.ones(L)
+    for i in xrange(niter):
+        W = scipy.sparse.spdiags(w, 0, L, L)
+        Z = W + lam * D.dot(D.transpose())
+        z = scipy.sparse.linalg.spsolve(Z, w*y)
+        w = p * (y > z) + (1-p) * (y < z)
+     return z
+
+
+# TODO COMPARE TO MULTIPLE GO- FIND CONFIDENCE SCORE- VALUE OF CONVOLUTION PEAK?
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
 # Input: raman spectral data
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
 class FindMaterial(object):
-    def __init__(self, material_name, data_filename):
+    def __init__(self, material_name, data_filename, subtract_baseline=False):
+        self.subtract_baseline = subtract_baseline
         self.material_name = material_name
         self.data_filename = data_filename
         self.material = materials[self.material_name]
         self.load_data()
+
+    def subtract_baseline(self):
+        for i in range(len(self.data)):
+            self.data.iloc[i][2:] = self.data.iloc[i][2:] - baseline_als(self.data.iloc[i][2:])
+
 
     def load_data(self):
         fname = self.data_filename
@@ -52,6 +74,8 @@ class FindMaterial(object):
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
         self.data = data
+        if self.subtract_baseline:
+            self.subtract_baseline()
         # should be better way to do this, but i can't find it
         wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
         for i, col in enumerate(data.columns[2:]):
@@ -90,13 +114,14 @@ class FindMaterial(object):
 
 
 
-
     def prepare_data(self, index):
         d = self.data.iloc[index].values[self.lowest_index:self.highest_index]
         d = d.reshape((len(d), 1))
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
         d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))]
+        plt.plot(d_final)
+        plt.show()
         return d_final
     
     def is_match(self, index):
@@ -125,15 +150,22 @@ class FindMaterial(object):
 
     # TODO COMPARE PERFORMANCE OF DOING THIS FIRST AND CONVOLUTION SECOND, OR OTHER WAY ROUND
     def check_match(self, index):
+        peak_start = self.peak_indices[0][0]
+        peak_end = self.peak_indices[0][-1]
+        #non_start = peak_start- 100 if peak_start > 100 else 0
+        #non_end = peak_end + 100 if (peak_end + 100) < len(self.wavelengths) else len(self.wavelengths)
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(self.data.iloc[index][self.peak_indices[0][0]:self.peak_indices[0][-1]]) 
+        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) 
         #print("mean peaks for index %d: %f", (index, mean_peaks))
         # cut off first bit cos there's some weirdness in Cyrills data.
+        #mean_non_peaks = np.mean(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]: non_end])
+        #stdev_non_peaks = np.std(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:non_end])
         mean_non_peaks = np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
         stdev_non_peaks = np.std(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
         #print("mean non peaks: %f stdev non peaks: %f", (mean_non_peaks, stdev_non_peaks))
         # TODO- WHEN STANDARD DEVIATION ISN'T VERY BIG, THIS IS NOT SUFFICIENT- TRY 2* WITH CYRILLS DATA- finds only 2 matches
+        # try basing off standard deviation near peaks
         if mean_peaks > mean_non_peaks+stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             return True
         else:
@@ -172,8 +204,8 @@ class FindMaterial(object):
     def find_match_positions(self):
         match_positions = []
         for match in self.matches:
-            match_scaled = match + self.lowest_index
-            match_positions.append((self.data.x[match_scaled], self.data.y[match_scaled]))
+            print("match %d" % (match))
+            match_positions.append((self.data.x[match], self.data.y[match]))
         self.match_positions = match_positions
 
     def plot_matches(self):
