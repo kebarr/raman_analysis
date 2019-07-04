@@ -43,7 +43,7 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
         Z = W + lam * D.dot(D.transpose())
         z = scipy.sparse.linalg.spsolve(Z, w*y)
         w = p * (y > z) + (1-p) * (y < z)
-     return z
+    return z
 
 
 # TODO COMPARE TO MULTIPLE GO- FIND CONFIDENCE SCORE- VALUE OF CONVOLUTION PEAK?
@@ -59,9 +59,16 @@ class FindMaterial(object):
         self.material = materials[self.material_name]
         self.load_data()
 
-    def subtract_baseline(self):
+    def subtract_baseline_data(self):
+        baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
+        print("subtracting baselines.... please wait!")
         for i in range(len(self.data)):
-            self.data.iloc[i][2:] = self.data.iloc[i][2:] - baseline_als(self.data.iloc[i][2:])
+            # painful but simple way is prohibitively slow
+            new = np.concatenate([np.array([data_raw.iloc[i].x]), np.array([data_raw.iloc[i].y]), np.array(data_raw.iloc[i][2:] - baseline_als(data_raw.iloc[i][2:]))])
+            self.data.loc[i] = new
+        print("baseline subtracted, writing result to file: %s " % (baseline_filename))
+        self.data.to_csv(baseline_filename, sep='\t')
+
 
 
     def load_data(self):
@@ -75,7 +82,7 @@ class FindMaterial(object):
         #td.columns[index] is wavelength at position index
         self.data = data
         if self.subtract_baseline:
-            self.subtract_baseline()
+            self.subtract_baseline_data()
         # should be better way to do this, but i can't find it
         wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
         for i, col in enumerate(data.columns[2:]):
@@ -120,60 +127,38 @@ class FindMaterial(object):
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
         d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))]
-        plt.plot(d_final)
-        plt.show()
-        return d_final
-    
-    def is_match(self, index):
-        # prepare data
-        to_match = self.prepare_data(index)
-        template = self.material.template
-        conv = scipy.signal.fftconvolve(to_match, template)
-        conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
-        if len(conv_peaks[0]) == 0:
-            return False
-        elif len(conv_peaks[0]) > 0:# & (conv_peaks[0][0] < 270) & (conv_peaks[0][0] > 230):
-            #print(index, conv_peaks)
-            if self.check_match(index):
-                #print("match at ", index, " accepted, conv peaks: ", conv_peaks)
-                #plt.plot(conv)
-                #plt.show()
-                #self.data.iloc[index].plot()
-                #plt.show()
-                #print("conv match: ", conv[conv_peaks[0][0]-15:conv_peaks[0][0] + 15])
-                # what if there are multiple convolution peaks? 
-                #### TODO- the bounds will actually be determined by the data
-                # position in convolution is actual match position + size(template)
-                # so to position of convolution peak should be position in data - template length
-                return True
-        return False
+        d_smoothed = savgol_filter(d_final, 51, 3)
+        return d_smoothed
+     
 
     # TODO COMPARE PERFORMANCE OF DOING THIS FIRST AND CONVOLUTION SECOND, OR OTHER WAY ROUND
-    def check_match(self, index):
+    def check_match(self, data_smoothed):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
         #non_start = peak_start- 100 if peak_start > 100 else 0
         #non_end = peak_end + 100 if (peak_end + 100) < len(self.wavelengths) else len(self.wavelengths)
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) 
+        mean_peaks = np.mean(data_smoothed[peak_start:peak_end]) 
         #print("mean peaks for index %d: %f", (index, mean_peaks))
         # cut off first bit cos there's some weirdness in Cyrills data.
         #mean_non_peaks = np.mean(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]: non_end])
         #stdev_non_peaks = np.std(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:non_end])
-        mean_non_peaks = np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
-        stdev_non_peaks = np.std(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:])
+        mean_non_peaks = np.mean(data_smoothed[200:self.peak_indices[0][0]]) + np.mean(data_smoothed[self.peak_indices[0][-1]:])
+        stdev_non_peaks = np.std(data_smoothed[200:self.peak_indices[0][0]]) + np.mean(data_smoothed[self.peak_indices[0][-1]:])
         #print("mean non peaks: %f stdev non peaks: %f", (mean_non_peaks, stdev_non_peaks))
         # TODO- WHEN STANDARD DEVIATION ISN'T VERY BIG, THIS IS NOT SUFFICIENT- TRY 2* WITH CYRILLS DATA- finds only 2 matches
         # try basing off standard deviation near peaks
+        #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
         if mean_peaks > mean_non_peaks+stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             return True
         else:
             return False
 
     def is_match(self, index):
-        if self.check_match(index):
-            to_match = self.prepare_data(index)
+        to_match = self.prepare_data(index)
+        if self.check_match(to_match):
+            self.matches_passed_first_filter += 1
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
@@ -184,6 +169,7 @@ class FindMaterial(object):
         return False
 
     def find_matches(self):
+        self.matches_passed_first_filter = 0
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
@@ -198,6 +184,7 @@ class FindMaterial(object):
                 #self.data.iloc[i].plot()
                 #plt.show()
         print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
+        print("self.matches_passed_first_filter: ", self.matches_passed_first_filter)
         self.matches = matches
 
 
