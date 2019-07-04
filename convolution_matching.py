@@ -127,46 +127,48 @@ class FindMaterial(object):
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
         d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))]
-        d_smoothed = savgol_filter(d_final, 51, 3)
-        return d_smoothed
+        return d_final
      
 
     # TODO COMPARE PERFORMANCE OF DOING THIS FIRST AND CONVOLUTION SECOND, OR OTHER WAY ROUND
-    def check_match(self, data_smoothed):
+    def check_match(self, index):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
-        #non_start = peak_start- 100 if peak_start > 100 else 0
-        #non_end = peak_end + 100 if (peak_end + 100) < len(self.wavelengths) else len(self.wavelengths)
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(data_smoothed[peak_start:peak_end]) 
-        #print("mean peaks for index %d: %f", (index, mean_peaks))
+        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) 
         # cut off first bit cos there's some weirdness in Cyrills data.
-        #mean_non_peaks = np.mean(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]: non_end])
-        #stdev_non_peaks = np.std(self.data.iloc[index][non_start:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:non_end])
-        mean_non_peaks = np.mean(data_smoothed[200:self.peak_indices[0][0]]) + np.mean(data_smoothed[self.peak_indices[0][-1]:])
-        stdev_non_peaks = np.std(data_smoothed[200:self.peak_indices[0][0]]) + np.mean(data_smoothed[self.peak_indices[0][-1]:])
-        #print("mean non peaks: %f stdev non peaks: %f", (mean_non_peaks, stdev_non_peaks))
+        mean_non_peaks = (np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:]))*0.5
+        stdev_non_peaks = np.std(np.concatenate([self.data.iloc[index][200:self.peak_indices[0][0]], self.data.iloc[index][self.peak_indices[0][-1]:]]))
         # TODO- WHEN STANDARD DEVIATION ISN'T VERY BIG, THIS IS NOT SUFFICIENT- TRY 2* WITH CYRILLS DATA- finds only 2 matches
         # try basing off standard deviation near peaks
         #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
-        if mean_peaks > mean_non_peaks+stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
-            return True
+        if mean_peaks > mean_non_peaks+2*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
+            # calculate how far beyond non peak mean as a confidence measure
+            if mean_peaks == mean_non_peaks+2*stdev_non_peaks:
+                confidence = 0
+            elif mean_peaks < 15*mean_non_peaks:
+                scaling_factor = 100./(15*mean_non_peaks)
+                confidence = mean_peaks*scaling_factor
+            else:
+                confidence = 100
+            return True, confidence
         else:
-            return False
+            return False, 0
 
     def is_match(self, index):
-        to_match = self.prepare_data(index)
-        if self.check_match(to_match):
+        res, con = self.check_match(index)
+        if res:
             self.matches_passed_first_filter += 1
+            to_match = self.prepare_data(index)
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
             if len(conv_peaks[0]) == 0:
-                return False
+                return False, 0
             elif len(conv_peaks[0]) > 0:
-                return True
-        return False
+                return True, con
+        return False, 0
 
     def find_matches(self):
         self.matches_passed_first_filter = 0
@@ -175,16 +177,19 @@ class FindMaterial(object):
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
         matches = []
+        confidences = []
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(matches)))
-            match = self.is_match(i)
+            match, con = self.is_match(i)
             if match == True:
                 matches.append(i)
+                confidences.append(con)
                 #self.data.iloc[i].plot()
                 #plt.show()
         print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
         print("self.matches_passed_first_filter: ", self.matches_passed_first_filter)
+        self.confidences = confidences
         self.matches = matches
 
 
