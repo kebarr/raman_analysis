@@ -5,6 +5,7 @@ import csv
 import string
 import collections
 import numpy as np
+from flask.ext.socketio import SocketIO, emit
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -100,7 +101,7 @@ class FindMaterial(object):
 
     def load_data(self):
         fname = self.data_filename
-        print("reading data from %s to locate %s" % (fname, self.material_name))
+        emit("reading data from %s to locate %s" % (fname, self.material_name))
         data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         # td.columns is the raman wavelength
         data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
@@ -115,7 +116,7 @@ class FindMaterial(object):
         for i, col in enumerate(data.columns[2:]):
             wavelengths[i] = float(col)
         self.wavelengths = wavelengths
-        print("successfully loaded data")
+        emit("successfully loaded data")
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
