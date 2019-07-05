@@ -45,19 +45,33 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
         w = p * (y > z) + (1-p) * (y < z)
     return z
 
-
-class Matches(object):
-    def __init__(self, material_name, data_filename):
-        self.material_name = material_name
-        self.data_filename = data_filename
-
-
+# don't think this is needed and probably memory inefficient
 class Match(object):
     def __init__(self, index, confidence):
-        self.material_name = material_name
-        self.data_filename = data_filename
         self.index = index
         self.confidence = confidence
+
+
+class Matches(object):
+    def __init__(self, material_name, data_filename, med_thresh=60, high_thresh=68):
+        self.material_name = material_name
+        self.data_filename = data_filename
+        self.med_thresh = med_thresh
+        self.high_thresh = high_thresh
+        self.matches = []
+        self.high_confidence = []
+        self.med_confidence = []
+
+    def add_match(self, index, confidence):
+        self.matches.append((index, confidence))
+        if confidence > self.high_thresh:
+            self.high_confidence.append(len(self.matches) -1)
+            self.med_confidence.append(len(self.matches) -1)    
+        elif confidence > self.med_thresh:
+            self.med_confidence.append(len(self.matches) -1)
+        
+
+
 
 # TODO COMPARE TO MULTIPLE GO- FIND CONFIDENCE SCORE- VALUE OF CONVOLUTION PEAK?
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
@@ -70,6 +84,7 @@ class FindMaterial(object):
         self.material_name = material_name
         self.data_filename = data_filename
         self.material = materials[self.material_name]
+        self.matches = Matches(material_name, data_filename)
         self.load_data()
 
     def subtract_baseline_data(self):
@@ -172,7 +187,6 @@ class FindMaterial(object):
     def is_match(self, index):
         res, con = self.check_match(index)
         if res:
-            self.matches_passed_first_filter += 1
             to_match = self.prepare_data(index)
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
@@ -184,7 +198,6 @@ class FindMaterial(object):
         return False, 0
 
     def find_matches(self):
-        self.matches_passed_first_filter = 0
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
@@ -193,32 +206,27 @@ class FindMaterial(object):
         confidences = []
         for i in range(number_locations):
             if i%update_flag == 0:
-                print("Tested %d locations, found %d matches" % (i, len(matches)))
+                print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con = self.is_match(i)
             if match == True:
-                matches.append(i)
-                confidences.append(con)
-                #self.data.iloc[i].plot()
-                #plt.show()
-        print("Finished finding matches, found %d locations positive for %s" % (len(matches), self.material_name))
-        print("self.matches_passed_first_filter: ", self.matches_passed_first_filter)
-        self.confidences = confidences
-        self.matches = matches
+                self.matches.add_match(i, con)
+        print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
-    def get_condifence_matches(self, thresh=55):
-        matches = []
-        confidences = []
-        for i, match in enumerate(self.matches):
-            if self.confidences[i] > thresh:
-                matches.append(match)
-                confidences.append(self.confidences[i])
-        return matches, confidences
-    
+    def get_condifence_matches(self, thresh='medium'):
+        if thresh=='medium':
+            return [self.matches.matches[match] for match in self.matches.med_confidence]
+        elif thresh=='high':
+            return [self.matches.matches[match] for match in self.matches.high_confidence]
+        
+    def get_high_confidence_matches(self):
+        return self.get_condifence_matches('high')
 
+    def get_med_confidence_matches(self):
+        return self.get_condifence_matches()
 
     def find_match_positions(self):
         match_positions = []
-        for match in self.matches:
+        for match in self.matches.matches:
             print("match %d" % (match))
             match_positions.append((self.data.x[match], self.data.y[match]))
         self.match_positions = match_positions
