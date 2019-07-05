@@ -13,6 +13,9 @@ PATH_FOLDER='/'
 #def index():
 #    return "Hello, World!"
 
+
+finder_dict = {}
+
 @app.route('/')
 def index():
     return 'Index Page'
@@ -24,15 +27,15 @@ def hello():
 # usage: http://127.0.0.1:5000/initialise_matcher/graphene_oxide/Users/mbbxhkb2/Documents/raman_imaging/raw_baselined_comp/pos_baselined.csv/0
 @app.route('/initialise_matcher/<material_name>/<path:data_filename>/<int:subtract_baseline>')
 def initialise_matcher(material_name, data_filename, subtract_baseline=False):
-    find_material = FindMaterial(material_name, PATH_FOLDER+data_filename, bool(subtract_baseline))
-    session['finder'] = find_material
-    #return "material_name: %s, data_filename: %s, subtract_baseline: %d " % (material_name, data_filename, subtract_baseline)
+    finder = FindMaterial(material_name, PATH_FOLDER+data_filename, bool(subtract_baseline))
+    finder_dict['finder'] = finder 
+    return "material_name: %s, data_filename: %s, subtract_baseline: %d " % (material_name, data_filename, subtract_baseline)
 
 @app.route('/find_matches')
 def find_matches():
-    if 'finder' in session:
-        #res = g.finder.find_matches()
-        return "yes"
+    if 'finder' in finder_dict:
+        finder_dict['finder'].find_matches()
+        return "Success"
     return "Please upload data"
 
 
