@@ -46,6 +46,19 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
     return z
 
 
+class Matches(object):
+    def __init__(self, material_name, data_filename):
+        self.material_name = material_name
+        self.data_filename = data_filename
+
+
+class Match(object):
+    def __init__(self, index, confidence):
+        self.material_name = material_name
+        self.data_filename = data_filename
+        self.index = index
+        self.confidence = confidence
+
 # TODO COMPARE TO MULTIPLE GO- FIND CONFIDENCE SCORE- VALUE OF CONVOLUTION PEAK?
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
 # Input: raman spectral data
@@ -136,19 +149,19 @@ class FindMaterial(object):
         peak_end = self.peak_indices[0][-1]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) 
+        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) + 50 # test basic approach to shifting mean upwards
         # cut off first bit cos there's some weirdness in Cyrills data.
-        mean_non_peaks = (np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:]))*0.5
+        mean_non_peaks = (np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_non_peaks = np.std(np.concatenate([self.data.iloc[index][200:self.peak_indices[0][0]], self.data.iloc[index][self.peak_indices[0][-1]:]]))
-        # TODO- WHEN STANDARD DEVIATION ISN'T VERY BIG, THIS IS NOT SUFFICIENT- TRY 2* WITH CYRILLS DATA- finds only 2 matches
+        # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
         if mean_peaks > mean_non_peaks+2*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             # calculate how far beyond non peak mean as a confidence measure
-            if mean_peaks == mean_non_peaks+2*stdev_non_peaks:
+            if mean_peaks <= mean_non_peaks+2*stdev_non_peaks:
                 confidence = 0
-            elif mean_peaks < 15*mean_non_peaks:
-                scaling_factor = 100./(15*mean_non_peaks)
+            elif mean_peaks < 5*mean_non_peaks:
+                scaling_factor = 100./(5*mean_non_peaks)
                 confidence = mean_peaks*scaling_factor
             else:
                 confidence = 100
@@ -191,6 +204,16 @@ class FindMaterial(object):
         print("self.matches_passed_first_filter: ", self.matches_passed_first_filter)
         self.confidences = confidences
         self.matches = matches
+
+    def get_condifence_matches(self, thresh=55):
+        matches = []
+        confidences = []
+        for i, match in enumerate(self.matches):
+            if self.confidences[i] > thresh:
+                matches.append(match)
+                confidences.append(self.confidences[i])
+        return matches, confidences
+    
 
 
     def find_match_positions(self):
