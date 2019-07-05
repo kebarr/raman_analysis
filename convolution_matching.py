@@ -73,7 +73,6 @@ class Matches(object):
 
 
 
-# TODO COMPARE TO MULTIPLE GO- FIND CONFIDENCE SCORE- VALUE OF CONVOLUTION PEAK?
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
 # Input: raman spectral data
 # Each desired material must have a profile, this includes a template and the positions of peaks
@@ -164,7 +163,7 @@ class FindMaterial(object):
         peak_end = self.peak_indices[0][-1]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) + 50 # test basic approach to shifting mean upwards
+        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) + 50
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_non_peaks = np.std(np.concatenate([self.data.iloc[index][200:self.peak_indices[0][0]], self.data.iloc[index][self.peak_indices[0][-1]:]]))
