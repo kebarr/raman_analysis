@@ -53,9 +53,15 @@ app.layout = html.Div(children=[
     dcc.RadioItems(
         id='upload-options',
         options=[{'value': 'with', 'label':'Upload with baseline subtraction', 'disabled':True}, {'value':'without', 'label':'Upload without baseline subtraction', 'disabled':True}]
-    )
+    ),
+    
     ]),
-    #html.Button('Upload data', id='button'),
+    html.Div([
+    # can't make hide/disable button work.....
+    html.Button('Upload', id='button', disabled=True)]
+    ),
+    html.Div([html.Div('Ready to upload file', id='clicked')]),
+     #style={'display' : 'none'}),
     dcc.Graph(
         id='example-graph',
         figure={
@@ -101,23 +107,42 @@ app.layout = html.Div(children=[
 #     return data
 
 #app.callback(Output('output', 'children'))(callbackfun)
-
+@app.callback(
+    [Output('button', 'disabled'),
+    Output('clicked', component_property='style')],
+    [Input('upload-options', 'value')])
+def set_baseline_option(value):
+    if value is not None:
+        print 'selected ' + str(value)
+        return [False, {'display' : 'block'}]
+    return [False, {'display' : 'block'}]
 
 # proposed logic: select file to upload, display name. click button to say 'process' - this will parse data and 
 @app.callback([Output('output-data-upload', 'children'),# this is what is returned
                 Output('upload-options', 'options')],
               [Input('upload-data', 'contents')], # input
-              [State('upload-data', 'filename'),
-               State('upload-data', 'last_modified')])
-def update_output(list_of_contents, list_of_names, list_of_dates):
+              [State('upload-data', 'filename')]) 
+def update_output(list_of_contents, list_of_names):
     children = []
     if list_of_contents is not None:
     #    children = [
     #        parse_contents(c, n, d) for c, n, d in
     #        zip(list_of_contents, list_of_names, list_of_dates)]
         children = ['Filename: ' + list_of_names[0]]
+    # would be nicer to hide then show items: https://stackoverflow.com/questions/50213761/changing-visibility-of-a-dash-component-by-updating-other-component
     # update entire options.... messy
     return [children, [{'value': 'with', 'label':'Upload with baseline subtraction', 'disabled':False}, {'value':'without', 'label':'Upload without baseline subtraction', 'disabled':False}]]
+
+# actually do the stuff...
+@app.callback(
+    [Output('clicked', 'children')],
+    [Input('button', 'n_clicks')],
+    [State('upload-options', 'value')])
+def upload_data(n_clicks, value):
+    if n_clicks is not None:
+        print('button pressed %d' % (n_clicks))
+        return ['Processing ' + str(value) + ' baseline sibtraction ']
+    return ['No data to process yet']
 
 
 if __name__ == '__main__':
