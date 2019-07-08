@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #pip install dash==1.0.0  # The core dash backend
 #pip install dash-daq==0.1.0 
+# https://github.com/plotly/dash-recipes
 import base64
 import datetime
 import io
@@ -11,6 +12,8 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
+from convolution_matching import FindMaterial
+
 
 import pandas as pd
 import numpy as np
@@ -62,54 +65,51 @@ app.layout = html.Div(children=[
 
 
 
-def parse_contents(contents, filename, date):
-    content_type, content_string = contents.split(',')
+#def parse_contents(contents, filename, date):
+#    content_type, content_string = contents.split(',')
 
-    decoded = base64.b64decode(content_string)
-    try:
-        if 'csv' in filename:
+#    decoded = base64.b64decode(content_string)
+#    try:
+#        if 'csv' or 'txt' in filename:
             # Assume that the user uploaded a CSV file
-            df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')))
-        elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
-            df = pd.read_excel(io.BytesIO(decoded))
-    except Exception as e:
-        print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
+#            df = pd.read_csv(
+#                io.StringIO(decoded.decode('utf-8')))
+#        else:
+#            raise ValueError("please upload .csv or .txt file")
+#    except Exception as e:
+#        print(e)
+#        return html.Div([
+#            'There was an error processing this file.'
+#        ])
 
-    return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
+#    return html.A("Succesfully uploaded file")
 
-        dash_table.DataTable(
-            data=df.to_dict('records'),
-            columns=[{'name': i, 'id': i} for i in df.columns]
-        ),
+# try to chain callbacks so it shows filename before starting to update
+#def fun1(input1):
+#      ...
+#     callbackfun(input)
 
-        html.Hr(),  # horizontal line
+#def callbackfun(input):
+#      ...
+#     return data
 
-        # For debugging, display the raw contents provided by the web browser
-        html.Div('Raw Content'),
-        html.Pre(contents[0:200] + '...', style={
-            'whiteSpace': 'pre-wrap',
-            'wordBreak': 'break-all'
-        })
-    ])
+#app.callback(Output('output', 'children'))(callbackfun)
 
 
+# proposed logic: select file to upload, display name. click button to say 'process' - this will parse data and 
 @app.callback(Output('output-data-upload', 'children'),
               [Input('upload-data', 'contents')],
               [State('upload-data', 'filename'),
                State('upload-data', 'last_modified')])
 def update_output(list_of_contents, list_of_names, list_of_dates):
+    print("Name of file")
+    children = []
     if list_of_contents is not None:
-        children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        return children
+    #    children = [
+    #        parse_contents(c, n, d) for c, n, d in
+    #        zip(list_of_contents, list_of_names, list_of_dates)]
+        children = ['uploaded ' + list_of_names[0]]
+    return children
 
 
 if __name__ == '__main__':
