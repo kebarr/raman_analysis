@@ -49,6 +49,13 @@ app.layout = html.Div(children=[
         multiple=True
     ),
     html.Div(id='output-data-upload'),
+    html.Div([
+    dcc.RadioItems(
+        id='upload-options',
+        options=[{'value': 'with', 'label':'Upload with baseline subtraction', 'disabled':True}, {'value':'without', 'label':'Upload without baseline subtraction', 'disabled':True}]
+    )
+    ]),
+    #html.Button('Upload data', id='button'),
     dcc.Graph(
         id='example-graph',
         figure={
@@ -97,19 +104,20 @@ app.layout = html.Div(children=[
 
 
 # proposed logic: select file to upload, display name. click button to say 'process' - this will parse data and 
-@app.callback(Output('output-data-upload', 'children'),
-              [Input('upload-data', 'contents')],
+@app.callback([Output('output-data-upload', 'children'),# this is what is returned
+                Output('upload-options', 'options')],
+              [Input('upload-data', 'contents')], # input
               [State('upload-data', 'filename'),
                State('upload-data', 'last_modified')])
 def update_output(list_of_contents, list_of_names, list_of_dates):
-    print("Name of file")
     children = []
     if list_of_contents is not None:
     #    children = [
     #        parse_contents(c, n, d) for c, n, d in
     #        zip(list_of_contents, list_of_names, list_of_dates)]
-        children = ['uploaded ' + list_of_names[0]]
-    return children
+        children = ['Filename: ' + list_of_names[0]]
+    # update entire options.... messy
+    return [children, [{'value': 'with', 'label':'Upload with baseline subtraction', 'disabled':False}, {'value':'without', 'label':'Upload without baseline subtraction', 'disabled':False}]]
 
 
 if __name__ == '__main__':
