@@ -5,6 +5,7 @@
 import base64
 import datetime
 import io
+import os
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -13,7 +14,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 from convolution_matching import FindMaterial
-
+from flask_caching import Cache
 
 import pandas as pd
 import numpy as np
@@ -22,6 +23,15 @@ import scipy
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+CACHE_CONFIG = {
+    # try 'filesystem' if you don't want to setup redis
+    'CACHE_TYPE': 'redis',
+    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
+}
+cache = Cache()
+cache.init_app(app.server, config=CACHE_CONFIG)
+
+find_material=FindMaterial()
 
 app.layout = html.Div(children=[
     html.H1(children='Hello Dash'),
@@ -76,37 +86,18 @@ app.layout = html.Div(children=[
     )
 ])
 
+@cache.memoize()
+def find_materials(function_name, kwargs):
+    if function_name == 'add_data':
+        find_material.add_data(kwargs)
+    if function_name == 'find_matches':
+        find_material.find_matches()
+    return ['Succesfully initialised material finder']
 
+@cache.memoize()
+def initialise_find_materials(material, subtract_baseline):
+    find_material.initialise(material, subtract_baseline)
 
-#def parse_contents(contents, filename, date):
-#    content_type, content_string = contents.split(',')
-
-#    decoded = base64.b64decode(content_string)
-#    try:
-#        if 'csv' or 'txt' in filename:
-            # Assume that the user uploaded a CSV file
-#            df = pd.read_csv(
-#                io.StringIO(decoded.decode('utf-8')))
-#        else:
-#            raise ValueError("please upload .csv or .txt file")
-#    except Exception as e:
-#        print(e)
-#        return html.Div([
-#            'There was an error processing this file.'
-#        ])
-
-#    return html.A("Succesfully uploaded file")
-
-# try to chain callbacks so it shows filename before starting to update
-#def fun1(input1):
-#      ...
-#     callbackfun(input)
-
-#def callbackfun(input):
-#      ...
-#     return data
-
-#app.callback(Output('output', 'children'))(callbackfun)
 @app.callback(
     [Output('button', 'disabled'),
     Output('clicked', component_property='style')],
@@ -125,23 +116,29 @@ def set_baseline_option(value):
 def update_output(list_of_contents, list_of_names):
     children = []
     if list_of_contents is not None:
-    #    children = [
-    #        parse_contents(c, n, d) for c, n, d in
-    #        zip(list_of_contents, list_of_names, list_of_dates)]
-        children = ['Filename: ' + list_of_names[0]]
-    # would be nicer to hide then show items: https://stackoverflow.com/questions/50213761/changing-visibility-of-a-dash-component-by-updating-other-component
-    # update entire options.... messy
-    return [children, [{'value': 'with', 'label':'Upload with baseline subtraction', 'disabled':False}, {'value':'without', 'label':'Upload without baseline subtraction', 'disabled':False}]]
+        content_type, content_string = list_of_contents[0].split(',')
+        decoded = base64.b64decode(content_string)
+        df = pd.read_csv(
+        io.StringIO(decoded.decode('utf-8')))
+        create_find_materials(df)
+        children = ['Filename: ' + list_of_names[0] + 'uploaded']
+        # would be nicer to hide then show items: https://stackoverflow.com/questions/50213761/changing-visibility-of-a-dash-component-by-updating-other-component
+        # update entire options.... messy
+        return [children, [{'value': 'with', 'label':'Find matches with baseline subtraction', 'disabled':False}, {'value':'without', 'label':'Find matches without baseline subtraction (baseline already subtracted)', 'disabled':False}]]
+    return [children, [{'value': 'with', 'label':'Find matches with baseline subtraction', 'disabled':True}, {'value':'without', 'label':'Find matches without baseline subtraction (baseline already subtracted)', 'disabled':True}]]
 
 # actually do the stuff...
 @app.callback(
     [Output('clicked', 'children')],
     [Input('button', 'n_clicks')],
-    [State('upload-options', 'value')])
-def upload_data(n_clicks, value):
+    [State('upload-options', 'value'),
+    State('upload-data', 'filename')])
+def upload_data(n_clicks, value, list_of_names):
     if n_clicks is not None:
-        print('button pressed %d' % (n_clicks))
-        return ['Processing ' + str(value) + ' baseline sibtraction ']
+        print('button pressed %d value: %s' % (n_clicks, str(value)))
+        subtract_baseline = True if value=='with' else False
+        initialise_find_materials('graphene_oxide', subtract_baseline)
+        return ['Processed ' + str(value) + ' baseline sibtraction ']
     return ['No data to process yet']
 
 

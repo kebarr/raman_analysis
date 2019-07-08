@@ -52,9 +52,8 @@ class Match(object):
 
 
 class Matches(object):
-    def __init__(self, material_name, data_filename, med_thresh=60, high_thresh=68):
+    def __init__(self, material_name, med_thresh=60, high_thresh=68):
         self.material_name = material_name
-        self.data_filename = data_filename
         self.med_thresh = med_thresh
         self.high_thresh = high_thresh
         self.matches = []
@@ -77,12 +76,17 @@ class Matches(object):
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
 class FindMaterial(object):
-    def __init__(self, material_name, data_filename, subtract_baseline=False):
+    def __init__(self):
+        pass
+    
+    def add_data(self, df):
+        self.data = df
+    
+    def initialise(self, material_name, subtract_baseline=False):
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
-        self.data_filename = data_filename
         self.material = materials[self.material_name]
-        self.matches = Matches(material_name, data_filename)
+        self.matches = Matches(material_name)
         self.load_data()
 
     def subtract_baseline_data(self):
@@ -98,23 +102,19 @@ class FindMaterial(object):
 
 
     def load_data(self):
-        fname = self.data_filename
-        emit("reading data from %s to locate %s" % (fname, self.material_name))
-        data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         # td.columns is the raman wavelength
-        data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        self.data = self.data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
-        self.data = data
         if self.subtract_baseline:
             self.subtract_baseline_data()
         # should be better way to do this, but i can't find it
-        wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
-        for i, col in enumerate(data.columns[2:]):
+        wavelengths = np.array([0 for i in range(len(self.data.columns[2:]))])
+        for i, col in enumerate(self.data.columns[2:]):
             wavelengths[i] = float(col)
         self.wavelengths = wavelengths
-        emit("successfully loaded data")
+        print("successfully loaded data")
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
@@ -195,7 +195,9 @@ class FindMaterial(object):
                 return True, con
         return False, 0
 
-    def find_matches(self):
+    def find_matches(self, material_name, subtract_baseline=False):
+        print('find_matches called with %s and %s' % (material_name, str(subtract_baseline)))
+        self.initialise(material_name, subtract_baseline)
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
