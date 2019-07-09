@@ -22,6 +22,17 @@ import pandas as pd
 import numpy as np
 import scipy
 
+import PIL
+from PIL import Image
+import simplejson
+import traceback
+
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory
+from flask_bootstrap import Bootstrap
+from werkzeug import secure_filename
+
+from lib.upload_file import uploadfile
+
 # worked and now doesn't!!
   #571  pip install Flask
   #572  export FLASK_APP=microblog.py
@@ -39,6 +50,13 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets, assets_folder=UPLOAD_FOLDER)
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 print UPLOAD_FOLDER
+SECRET_KEY = 'hard to guess string'
+UPLOAD_FOLDER = 'data/'
+THUMBNAIL_FOLDER = 'data/thumbnail/'
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+
+ALLOWED_EXTENSIONS = set(['txt', 'gif', 'png', 'jpg', 'jpeg', 'bmp', 'rar', 'zip', '7zip', 'doc', 'docx'])
+IGNORED_FILES = set(['.gitignore'])
 
 
 CACHE_CONFIG = {
@@ -48,6 +66,7 @@ CACHE_CONFIG = {
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
+
 
 app.layout = html.Div(children=[
     html.H1(children='Hello Dash'),
@@ -107,6 +126,115 @@ app.layout = html.Div(children=[
 )
 ])
 
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def gen_file_name(filename):
+    """
+    If file was exist already, rename it and return a new name
+    """
+
+    i = 1
+    while os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+        name, extension = os.path.splitext(filename)
+        filename = '%s_%s%s' % (name, str(i), extension)
+        i += 1
+
+    return filename
+
+
+def create_thumbnail(image):
+    try:
+        base_width = 80
+        img = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image))
+        w_percent = (base_width / float(img.size[0]))
+        h_size = int((float(img.size[1]) * float(w_percent)))
+        img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
+        img.save(os.path.join(app.config['THUMBNAIL_FOLDER'], image))
+
+        return True
+
+    except:
+        print traceback.format_exc()
+        return False
+
+
+@app.server.route("/upload2", methods=['GET', 'POST'])
+def upload2():
+    if request.method == 'POST':
+        files = request.files['file']
+
+        if files:
+            filename = secure_filename(files.filename)
+            filename = gen_file_name(filename)
+            mime_type = files.content_type
+
+            if not allowed_file(files.filename):
+                result = uploadfile(name=filename, type=mime_type, size=0, not_allowed_msg="File type not allowed")
+
+            else:
+                # save file to disk
+                uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
+                files.save(uploaded_file_path)
+
+                # create thumbnail after saving
+                if mime_type.startswith('image'):
+                    create_thumbnail(filename)
+                
+                # get file size after saving
+                size = os.path.getsize(uploaded_file_path)
+
+                # return json for js call back
+                result = uploadfile(name=filename, type=mime_type, size=size)
+            
+            return simplejson.dumps({"files": [result.get_file()]})
+
+    if request.method == 'GET':
+        # get all file in ./data directory
+        files = [f for f in os.listdir(UPLOAD_FOLDER) if os.path.isfile(os.path.join(UPLOAD_FOLDER,f)) and f not in IGNORED_FILES ]
+        
+        file_display = []
+
+        for f in files:
+            size = os.path.getsize(os.path.join(UPLOAD_FOLDER, f))
+            file_saved = uploadfile(name=f, size=size)
+            file_display.append(file_saved.get_file())
+
+        return simplejson.dumps({"files": file_display})
+
+    return redirect(url_for('index'))
+
+
+@app.server.route("/delete/<string:filename>", methods=['DELETE'])
+def delete(filename):
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    file_thumb_path = os.path.join(THUMBNAIL_FOLDER, filename)
+
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+
+            if os.path.exists(file_thumb_path):
+                os.remove(file_thumb_path)
+            
+            return simplejson.dumps({filename: 'True'})
+        except:
+            return simplejson.dumps({filename: 'False'})
+
+
+# serve static files
+@app.server.route("/thumbnail/<string:filename>", methods=['GET'])
+def get_thumbnail(filename):
+    return send_from_directory(THUMBNAIL_FOLDER, filename=filename)
+
+
+@app.server.route("/data/<string:filename>", methods=['GET'])
+def get_file(filename):
+    return send_from_directory(os.path.join(UPLOAD_FOLDER), filename=filename)
+
+
 @app.server.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
@@ -114,12 +242,13 @@ def upload_file():
         filename = secure_filename(file.filename)
         if not os.path.exists(os.path.join(app.config['assets_folder'], filename)):
             file.save(os.path.join(app.config['assets_folder'], filename))
-            return '''
-                    <form method=post enctype=multipart/form-data>
-                     <input type=file name=file>
-                     <input type=submit value=Upload>
-                     </form>
-                    '''
+    return '''
+            <form method=post enctype=multipart/form-data>
+                <input type=file name=file>
+                <input type=submit value=Upload>
+            </form>
+            '''
+    
 
 @cache.memoize()
 def add_data(df):
