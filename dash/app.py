@@ -7,14 +7,14 @@ import datetime
 import io
 import os
 
-import dash_resumable_upload
-
 import dash
 from dash.dependencies import Input, Output, State
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
+from flask import Flask, flash, request
+from werkzeug.utils import secure_filename
 from convolution_matching import FindMaterial
 from flask_caching import Cache
 
@@ -22,16 +22,17 @@ import pandas as pd
 import numpy as np
 import scipy
 
+# now try this: https://community.plot.ly/t/dash-upload-component-decoding-large-files/8033/11
+
+cwd = os.getcwd()
+UPLOAD_FOLDER = cwd + '/uploads'
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.scripts.config.serve_locally = True
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets, assets_folder=UPLOAD_FOLDER)
+#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+print UPLOAD_FOLDER
 
-app.css.append_css({
-    "external_url": "https://codepen.io/rmarren1/pen/eMQKBW.css"
-})
-
-dash_resumable_upload.decorate_server(app.server, "uploads")
 
 CACHE_CONFIG = {
     # try 'filesystem' if you don't want to setup redis
@@ -48,17 +49,6 @@ app.layout = html.Div(children=[
     html.Div(children='''
         Dash: A web application framework for Python.
     '''),
-    html.Div([
-    dash_resumable_upload.Upload(
-        id='upload',
-        maxFiles=1,
-        maxFileSize=1024*1024*1000,  # 100 MB
-        service="/upload_resumable",
-        textLabel="Drag and Drop Here to upload!",
-        startButton=False
-    ),
-    html.Div(id='output')
-]),
     dcc.Upload(
         id='upload-data',
         children=html.Div([
@@ -103,8 +93,27 @@ app.layout = html.Div(children=[
                 'title': 'Dash Data Visualization'
             }
         }
-    )
+    ), html.Div( 
+        children=[
+            html.Iframe(id='iframe-upload',src='/upload'),
+            html.Div(id='output')
+                ]
+)
 ])
+
+@app.server.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        file = request.files['file']
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['assets_folder'], filename))
+
+    return '''
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
 
 @cache.memoize()
 def add_data(df):
@@ -167,13 +176,6 @@ def upload_data(n_clicks, value, list_of_names):
         return ['Processed ' + str(value) + ' baseline sibtraction ']
     return ['No data to process yet']
 
-@app.callback(Output('output', 'children'),
-              [Input('upload', 'fileNames')])
-def display_files(fileNames):
-    if fileNames is not None:
-        return html.Ul([html.Li(
-            html.Img(height="50", width="100", src=x)) for x in fileNames])
-    return html.Ul(html.Li("No Files Uploaded Yet!"))
 
 
 if __name__ == '__main__':
