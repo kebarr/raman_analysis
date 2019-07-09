@@ -27,7 +27,7 @@ def read_template(name):
         return t
 
 material = collections.namedtuple('material', 'name peaks template')
-graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('templates/graphene_oxide'))
+graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('matching_templates/graphene_oxide'))
 materials = {'graphene_oxide': graphene_oxide}
 
 # function to baseline data
