@@ -76,11 +76,9 @@ class Matches(object):
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
 class FindMaterial(object):
-    def __init__(self):
-        pass
-    
-    def add_data(self, df):
-        self.data = df
+    def __init__(self, df=None):
+        if df is not None:
+            self.data = df
     
     def initialise(self, material_name, subtract_baseline=False):
         self.subtract_baseline = subtract_baseline

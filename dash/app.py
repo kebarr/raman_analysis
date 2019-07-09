@@ -7,6 +7,8 @@ import datetime
 import io
 import os
 
+import dash_resumable_upload
+
 import dash
 from dash.dependencies import Input, Output, State
 import dash
@@ -23,6 +25,14 @@ import scipy
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.scripts.config.serve_locally = True
+
+app.css.append_css({
+    "external_url": "https://codepen.io/rmarren1/pen/eMQKBW.css"
+})
+
+dash_resumable_upload.decorate_server(app.server, "uploads")
+
 CACHE_CONFIG = {
     # try 'filesystem' if you don't want to setup redis
     'CACHE_TYPE': 'redis',
@@ -31,7 +41,6 @@ CACHE_CONFIG = {
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
 
-find_material=FindMaterial()
 
 app.layout = html.Div(children=[
     html.H1(children='Hello Dash'),
@@ -39,6 +48,17 @@ app.layout = html.Div(children=[
     html.Div(children='''
         Dash: A web application framework for Python.
     '''),
+    html.Div([
+    dash_resumable_upload.Upload(
+        id='upload',
+        maxFiles=1,
+        maxFileSize=1024*1024*1000,  # 100 MB
+        service="/upload_resumable",
+        textLabel="Drag and Drop Here to upload!",
+        startButton=False
+    ),
+    html.Div(id='output')
+]),
     dcc.Upload(
         id='upload-data',
         children=html.Div([
@@ -87,12 +107,11 @@ app.layout = html.Div(children=[
 ])
 
 @cache.memoize()
-def find_materials(function_name, kwargs):
-    if function_name == 'add_data':
-        find_material.add_data(kwargs)
-    if function_name == 'find_matches':
-        find_material.find_matches()
-    return ['Succesfully initialised material finder']
+def add_data(df):
+    find_material = FindMaterial(df)
+    return find_material
+
+
 
 @cache.memoize()
 def initialise_find_materials(material, subtract_baseline):
@@ -109,6 +128,8 @@ def set_baseline_option(value):
     return [False, {'display' : 'block'}]
 
 # proposed logic: select file to upload, display name. click button to say 'process' - this will parse data and 
+
+# try to edit this so that it doesn't download contents yet- move input to button callback
 @app.callback([Output('output-data-upload', 'children'),# this is what is returned
                 Output('upload-options', 'options')],
               [Input('upload-data', 'contents')], # input
@@ -120,7 +141,7 @@ def update_output(list_of_contents, list_of_names):
         decoded = base64.b64decode(content_string)
         df = pd.read_csv(
         io.StringIO(decoded.decode('utf-8')))
-        create_find_materials(df)
+        fm = add_data(df)
         children = ['Filename: ' + list_of_names[0] + 'uploaded']
         # would be nicer to hide then show items: https://stackoverflow.com/questions/50213761/changing-visibility-of-a-dash-component-by-updating-other-component
         # update entire options.... messy
@@ -128,6 +149,7 @@ def update_output(list_of_contents, list_of_names):
     return [children, [{'value': 'with', 'label':'Find matches with baseline subtraction', 'disabled':True}, {'value':'without', 'label':'Find matches without baseline subtraction (baseline already subtracted)', 'disabled':True}]]
 
 # actually do the stuff...
+# button callback
 @app.callback(
     [Output('clicked', 'children')],
     [Input('button', 'n_clicks')],
@@ -137,9 +159,21 @@ def upload_data(n_clicks, value, list_of_names):
     if n_clicks is not None:
         print('button pressed %d value: %s' % (n_clicks, str(value)))
         subtract_baseline = True if value=='with' else False
-        initialise_find_materials('graphene_oxide', subtract_baseline)
+        # surely the entire point of memoization is so that its run once, so it should be returning the result from last time, when there was actual input?
+        # its being computed with a different value to last time though, which is why its getting overwritten.
+        # so need a function we can call to get up to date find_materials, without 
+        fm = add_data()
+        fm.find_matches('graphene_oxide', subtract_baseline)
         return ['Processed ' + str(value) + ' baseline sibtraction ']
     return ['No data to process yet']
+
+@app.callback(Output('output', 'children'),
+              [Input('upload', 'fileNames')])
+def display_files(fileNames):
+    if fileNames is not None:
+        return html.Ul([html.Li(
+            html.Img(height="50", width="100", src=x)) for x in fileNames])
+    return html.Ul(html.Li("No Files Uploaded Yet!"))
 
 
 if __name__ == '__main__':
