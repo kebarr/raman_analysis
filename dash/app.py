@@ -22,6 +22,13 @@ import pandas as pd
 import numpy as np
 import scipy
 
+# worked and now doesn't!!
+  #571  pip install Flask
+  #572  export FLASK_APP=microblog.py
+  #573  flask run
+ # 574  export FLASK_APP=find_peaks.py
+#flask run
+
 # now try this: https://community.plot.ly/t/dash-upload-component-decoding-large-files/8033/11
 
 cwd = os.getcwd()
@@ -41,7 +48,6 @@ CACHE_CONFIG = {
 }
 cache = Cache()
 cache.init_app(app.server, config=CACHE_CONFIG)
-
 
 app.layout = html.Div(children=[
     html.H1(children='Hello Dash'),
@@ -106,14 +112,14 @@ def upload_file():
     if request.method == 'POST':
         file = request.files['file']
         filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['assets_folder'], filename))
-
-    return '''
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+        if not os.path.exists(os.path.join(app.config['assets_folder'], filename)):
+            file.save(os.path.join(app.config['assets_folder'], filename))
+            return '''
+                    <form method=post enctype=multipart/form-data>
+                     <input type=file name=file>
+                     <input type=submit value=Upload>
+                     </form>
+                    '''
 
 @cache.memoize()
 def add_data(df):
