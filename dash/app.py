@@ -196,8 +196,8 @@ def initialise_find_materials(material, subtract_baseline):
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
-    print('called find peaks')
-    option = request.form['options']
+    print('called find peaks', request.form.keys)
+    option = request.form['baseline']
     print option
     #if option == 'with':
 
