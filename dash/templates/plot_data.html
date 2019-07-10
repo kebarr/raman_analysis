@@ -31,6 +31,8 @@
                     <button id="upload-file-btn" type="button">Upload</button>
                 </fieldset>
             </form>
+            <div id="for-image">
+            </div>>
             <!-- The table listing the files available for upload/download -->
 </div>
 <!-- The blueimp Gallery widget -->
@@ -172,7 +174,14 @@
                         processData: false,
                         success: function(data) {
                         img = document.createElement("img");
-                        img.src=""
+                        var loc = window.location.pathname;
+                        var dir = loc.substring(0, loc.lastIndexOf('/'));
+                        console.log(dir);
+                        //img.src = "http://127.0.0.1:5000/uploads/L_M12_Spleen_Sec1_Area.bmp"
+                        //img.src="/Users/mbbxhkb2/Documents/raman_imaging/find_peaks/dash/uploads/" + data.name
+                        //img.src = data.url
+                        var elem = document.getElementById("for-image")
+                        elem.appendChild(img)
                     console.log('Success!');
                 },
             });
