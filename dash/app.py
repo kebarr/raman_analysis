@@ -150,6 +150,11 @@ def delete(filename):
 # serve static files
 @app.route("/thumbnail/<string:filename>", methods=['GET'])
 def get_thumbnail(filename):
+    return send_from_directory(app.config['THUMBNAIL_FOLDER'], filename=filename)
+    
+# serve static files
+@app.route("/thumbnail/<string:filename>", methods=['GET'])
+def get_thumbnail(filename):
     return send_from_directory(THUMBNAIL_FOLDER, filename=filename)
 
 
@@ -213,6 +218,26 @@ def plot_example_match(fm):
 def plot_match_positions_on_image():
     pass
 
+@app.route('/upload_image', methods=['GET', 'POST'])
+def upload_image():
+    filename = request.args.get('filename')
+    filename = gen_file_name(filename)
+
+    # save file to disk
+    uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
+    files.save(uploaded_file_path)
+
+    # get file size after saving
+    size = os.path.getsize(uploaded_file_path)
+
+    # return json for js call back
+    result = uploadfile(name=filename, type=mime_type, size=size)
+    return simplejson.dumps({"files": [result.get_file()]})
+
+
+#@app.route('show_image/<filename>')
+#def show_image(filename):
+#    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
