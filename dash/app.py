@@ -147,24 +147,6 @@ def delete(filename):
             return simplejson.dumps({filename: 'False'})
 
 
-# serve static files
-@app.route("/thumbnail/<string:filename>", methods=['GET'])
-def get_thumbnail(filename):
-    return send_from_directory(app.config['THUMBNAIL_FOLDER'], filename=filename)
-    
-# serve static files
-@app.route("/thumbnail/<string:filename>", methods=['GET'])
-def get_thumbnail(filename):
-    return send_from_directory(THUMBNAIL_FOLDER, filename=filename)
-
-
-@app.route("/data/<string:filename>", methods=['GET'])
-def get_file(filename):
-    return send_from_directory(os.path.join(UPLOAD_FOLDER), filename=filename)
-
-
-    
-
 
 @cache.memoize()
 def find_material(filename, material, subtract_baseline):
@@ -218,21 +200,30 @@ def plot_example_match(fm):
 def plot_match_positions_on_image():
     pass
 
-@app.route('/upload_image', methods=['GET', 'POST'])
+@app.route('/uploadajax', methods = ['POST'])
 def upload_image():
-    filename = request.args.get('filename')
-    filename = gen_file_name(filename)
+    print request.files
+    if request.method == 'POST':
+        files = request.files['file']
 
-    # save file to disk
-    uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
-    files.save(uploaded_file_path)
-
-    # get file size after saving
-    size = os.path.getsize(uploaded_file_path)
-
-    # return json for js call back
-    result = uploadfile(name=filename, type=mime_type, size=size)
-    return simplejson.dumps({"files": [result.get_file()]})
+        if files:
+            print('in conditional')
+            filename = secure_filename(files.filename)
+            filename = gen_file_name(filename)
+            if filename.endswith(".bmp") or filename.endswith(".jpeg"):
+                mime_type = files.content_type
+                print('in else')
+                # save file to disk
+                uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
+                files.save(uploaded_file_path)
+                print(' uploaded')         
+                # get file size after saving
+                size = os.path.getsize(uploaded_file_path)
+                print size
+                # return json for js call back
+                result = uploadfile(name=filename, type=mime_type, size=size)
+                print result.get_file()
+                return result.get_file()
 
 
 #@app.route('show_image/<filename>')
