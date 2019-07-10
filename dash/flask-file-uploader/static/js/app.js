@@ -16,7 +16,7 @@
     'use strict';
 
     var isOnGitHub = window.location.hostname === 'blueimp.github.io',
-        url = isOnGitHub ? '//flask-file-uploader/static/js/jQuery-File-Upload-9.32.0//' : 'server/php/';
+        url = isOnGitHub ? '//flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/' : 'server/php/';
 
     angular.module('demo', [
         'blueimp.fileupload'
@@ -37,8 +37,7 @@
                         // send Blob objects via XHR requests:
                         disableImageResize: /Android(?!.*Chrome)|Opera/
                             .test(window.navigator.userAgent),
-                        maxFileSize: 5000000,
-                        acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i
+                        acceptFileTypes: /(\.|\/)(csv|txt)$/i
                     });
                 }
             }

@@ -54,7 +54,7 @@ UPLOAD_FOLDER = 'data/'
 THUMBNAIL_FOLDER = 'data/thumbnail/'
 
 
-ALLOWED_EXTENSIONS = set(['txt', 'gif', 'png', 'jpg', 'jpeg', 'bmp', 'rar', 'zip', '7zip', 'doc', 'docx'])
+ALLOWED_EXTENSIONS = set(['txt', 'csv'])
 IGNORED_FILES = set(['.gitignore'])
 
 bootstrap = Bootstrap(app)
@@ -106,6 +106,7 @@ def create_thumbnail(image):
 
 @app.route("/upload2", methods=['GET', 'POST'])
 def upload2():
+    print('upload 2')
     if request.method == 'POST':
         files = request.files['file']
 
@@ -213,3 +214,26 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# grep -rno 'jquery-file-upload.appspot.com' .
+#./index.html:15:jquery-file-upload.appspot.com
+#./templates/index.html:15:jquery-file-upload.appspot.com
+#./flask-file-uploader/static/js/main.js:37:jquery-file-upload.appspot.com
+#./flask-file-uploader/static/js/main.js:49:jquery-file-upload.appspot.com
+#./flask-file-uploader/static/js/app.js:19:jquery-file-upload.appspot.com
+#./flask-file-uploader/templates/index.html:15:jquery-file-upload.appspot.com
+
+#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./index.html
+#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./templates/index.html
+#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/static/js/main.js
+#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/static/js/app.js
+#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/templates/index.html
+#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/static/js/main.js
+#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/static/js/app.js
+#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./index.html
+#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g'./templates/index.html
+#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/templates/index.html
+
+#sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' ./flask-file-uploader/static/js/main.js
+#sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' 
