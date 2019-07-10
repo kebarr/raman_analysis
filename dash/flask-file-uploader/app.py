@@ -1,74 +1,36 @@
-# -*- coding: utf-8 -*-
-#pip install dash==1.0.0  # The core dash backend
-#pip install dash-daq==0.1.0 
-# https://github.com/plotly/dash-recipes
-import base64
-import datetime
-import io
+#!flask/bin/python
+
+# Author: Ngo Duy Khanh
+# Email: ngokhanhit@gmail.com
+# Git repository: https://github.com/ngoduykhanh/flask-file-uploader
+# This work based on jQuery-File-Upload which can be found at https://github.com/blueimp/jQuery-File-Upload/
+
 import os
-
-import dash
-from dash.dependencies import Input, Output, State
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
-from flask import Flask, flash, request
-from werkzeug.utils import secure_filename
-from convolution_matching import FindMaterial
-from flask_caching import Cache
-
-import pandas as pd
-import numpy as np
-import scipy
-
 import PIL
 from PIL import Image
 import simplejson
 import traceback
 
-from flask import Flask, request, render_template, redirect, url_for, send_from_directory
+from flask import Flask #, request, render_template, redirect, url_for, send_from_directory
 from flask_bootstrap import Bootstrap
-from werkzeug import secure_filename
+#from werkzeug import secure_filename
 
 from lib.upload_file import uploadfile
 
-# worked and now doesn't!!
-  #571  pip install Flask
-  #572  export FLASK_APP=microblog.py
-  #573  flask run
- # 574  export FLASK_APP=find_peaks.py
-#flask run
 
-# now try this: https://community.plot.ly/t/dash-upload-component-decoding-large-files/8033/11
+app = Flask('app')
 
-cwd = os.getcwd()
-UPLOAD_FOLDER = cwd + '/uploads'
-
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = Flask(__name__)
-#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-print UPLOAD_FOLDER
-SECRET_KEY = 'hard to guess string'
-UPLOAD_FOLDER = 'data/'
-THUMBNAIL_FOLDER = 'data/thumbnail/'
-
+app.config['SECRET_KEY'] = 'hard to guess string'
+app.config['UPLOAD_FOLDER'] = '/data/'
+app.config['THUMBNAIL_FOLDER'] = '/data/thumbnail/'
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 ALLOWED_EXTENSIONS = set(['txt', 'gif', 'png', 'jpg', 'jpeg', 'bmp', 'rar', 'zip', '7zip', 'doc', 'docx'])
 IGNORED_FILES = set(['.gitignore'])
 
 bootstrap = Bootstrap(app)
 
-
-CACHE_CONFIG = {
-    # try 'filesystem' if you don't want to setup redis
-    'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
-}
-#cache = Cache()
-#cache.init_app(app.server, config=CACHE_CONFIG)
-
-
+ 
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -104,8 +66,8 @@ def create_thumbnail(image):
         return False
 
 
-@app.route("/upload2", methods=['GET', 'POST'])
-def upload2():
+@app.route("/upload", methods=['GET', 'POST'])
+def upload():
     if request.method == 'POST':
         files = request.files['file']
 
@@ -119,7 +81,7 @@ def upload2():
 
             else:
                 # save file to disk
-                uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
+                uploaded_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 files.save(uploaded_file_path)
 
                 # create thumbnail after saving
@@ -136,12 +98,12 @@ def upload2():
 
     if request.method == 'GET':
         # get all file in ./data directory
-        files = [f for f in os.listdir(UPLOAD_FOLDER) if os.path.isfile(os.path.join(UPLOAD_FOLDER,f)) and f not in IGNORED_FILES ]
+        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'],f)) and f not in IGNORED_FILES ]
         
         file_display = []
 
         for f in files:
-            size = os.path.getsize(os.path.join(UPLOAD_FOLDER, f))
+            size = os.path.getsize(os.path.join(app.config['UPLOAD_FOLDER'], f))
             file_saved = uploadfile(name=f, size=size)
             file_display.append(file_saved.get_file())
 
@@ -152,8 +114,8 @@ def upload2():
 
 @app.route("/delete/<string:filename>", methods=['DELETE'])
 def delete(filename):
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    file_thumb_path = os.path.join(THUMBNAIL_FOLDER, filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file_thumb_path = os.path.join(app.config['THUMBNAIL_FOLDER'], filename)
 
     if os.path.exists(file_path):
         try:
@@ -170,45 +132,17 @@ def delete(filename):
 # serve static files
 @app.route("/thumbnail/<string:filename>", methods=['GET'])
 def get_thumbnail(filename):
-    return send_from_directory(THUMBNAIL_FOLDER, filename=filename)
+    return send_from_directory(app.config['THUMBNAIL_FOLDER'], filename=filename)
 
 
 @app.route("/data/<string:filename>", methods=['GET'])
 def get_file(filename):
-    return send_from_directory(os.path.join(UPLOAD_FOLDER), filename=filename)
+    return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER']), filename=filename)
 
 
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        file = request.files['file']
-        filename = secure_filename(file.filename)
-        if not os.path.exists(os.path.join(app.config['assets_folder'], filename)):
-            file.save(os.path.join(app.config['assets_folder'], filename))
-    return '''
-            <form method=post enctype=multipart/form-data>
-                <input type=file name=file>
-                <input type=submit value=Upload>
-            </form>
-            '''
-    
-
-#@cache.memoize()
-def add_data(df):
-    find_material = FindMaterial(df)
-    return find_material
-
-
-
-#@cache.memoize()
-def initialise_find_materials(material, subtract_baseline):
-    find_material.initialise(material, subtract_baseline)
-
-
-
-@app.route('/test', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    return render_template('templates/index.html')
 
 
 if __name__ == '__main__':
