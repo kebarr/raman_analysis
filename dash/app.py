@@ -6,18 +6,15 @@ import base64
 import datetime
 import io
 import os
+from cStringIO import StringIO
 
-import dash
-from dash.dependencies import Input, Output, State
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
+
 from flask import Flask, flash, request
 from werkzeug.utils import secure_filename
 from convolution_matching import FindMaterial
 from flask_caching import Cache
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import scipy
@@ -65,8 +62,8 @@ CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
     'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
 }
-#cache = Cache()
-#cache.init_app(app.server, config=CACHE_CONFIG)
+cache = Cache()
+cache.init_app(app, config=CACHE_CONFIG)
 
 
 def allowed_file(filename):
@@ -88,24 +85,9 @@ def gen_file_name(filename):
     return filename
 
 
-def create_thumbnail(image):
-    try:
-        base_width = 80
-        img = Image.open(os.path.join('UPLOAD_FOLDER', image))
-        w_percent = (base_width / float(img.size[0]))
-        h_size = int((float(img.size[1]) * float(w_percent)))
-        img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
-        img.save(os.path.join('THUMBNAIL_FOLDER', image))
-
-        return True
-
-    except:
-        print traceback.format_exc()
-        return False
-
 
 @app.route("/upload", methods=['GET', 'POST'])
-def upload2():
+def upload():
     print('upload')
     if request.method == 'POST':
         files = request.files['file']
@@ -122,10 +104,6 @@ def upload2():
                 # save file to disk
                 uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
                 files.save(uploaded_file_path)
-
-                # create thumbnail after saving
-                if mime_type.startswith('image'):
-                    create_thumbnail(filename)
                 
                 # get file size after saving
                 size = os.path.getsize(uploaded_file_path)
@@ -182,24 +160,68 @@ def get_file(filename):
 
     
 
-#@cache.memoize()
-def add_data(df):
-    find_material = FindMaterial(df)
-    return find_material
+
+@cache.memoize()
+def find_material(filename, material, subtract_baseline):
+    return FindMaterial(filename, material, subtract_baseline)
+
+@cache.memoize()
+def find_matches(fm):
+    fm.find_matches()
+    return fm
+
+def start_find_materials():
+    return render_template('file_uploaded.html', status='Loading data into material finder')
+
+def find_materials_initialised():
+    return render_template('file_uploaded.html', status='Data loaded into material finder, starting to look for matches')
+
+
+# https://gist.github.com/tebeka/5426211
+def plot_random_baseline_example(fm):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    fm.random_sample_compare_before_subtract_baseline.plot(ax=ax)
+    fm.random_sample_compare_after_subtract_baseline.plot(ax=ax)
+    ax.set_title("Example with/without baseline subtraction")
+    io = StringIO()
+    fig.savefig(io, format='png')
+    data = base64.encodestring(io.getvalue())
+    return render_template('plot_data.html', number_matches=len(fm.matches), number_locations=len(fm.data), baseline_example=data)
 
 
 
-#@cache.memoize()
-def initialise_find_materials(material, subtract_baseline):
-    find_material.initialise(material, subtract_baseline)
+# actually make a new template for this, with graphs!!
+def plot_example_match(fm):
+    number_matches = len(fm.matches.matches)
+    string = '%d matches found' % number_matches
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,2,1)
+    index_to_plot_1 = np.random.randint(0, number_matches)
+    fm.data.iloc[index_to_plot_1].plot(ax=ax1)
+    ax2 = fig.add_subplot(1,2,2)
+    index_to_plot_2 = np.random.randint(0, number_matches)
+    fm.data.iloc[index_to_plot_2].plot(ax=ax2)
+    io = StringIO()
+    fig.savefig(io, format='png')
+    data = base64.encodestring(io.getvalue())
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=len(fm.data), match_example=data)
 
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
     print('called find peaks', request.form.keys)
     option = request.form['baseline']
-    print option
-    #if option == 'with':
+    filename = UPLOAD_FOLDER + request.form['filename']
+    print option, filename
+    subtract_baseline = True if option == 'with' else False
+    start_find_materials()
+    fm = find_material(filename, 'graphene_oxide', subtract_baseline)
+    find_materials_initialised()
+    fm = find_matches(fm)
+    if subtract_baseline:
+        plot_random_baseline_example(fm)
+    return plot_example_match(fm)
 
 @app.route('/test', methods=['GET', 'POST'])
 def index():

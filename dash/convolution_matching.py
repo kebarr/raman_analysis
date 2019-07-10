@@ -1,5 +1,6 @@
 import os
 import math
+import copy
 import random
 import csv
 import string
@@ -52,7 +53,8 @@ class Match(object):
 
 
 class Matches(object):
-    def __init__(self, material_name, med_thresh=60, high_thresh=68):
+    def __init__(self, filename, material_name, med_thresh=60, high_thresh=68):
+        self.filename = filename
         self.material_name = material_name
         self.med_thresh = med_thresh
         self.high_thresh = high_thresh
@@ -76,32 +78,35 @@ class Matches(object):
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
 class FindMaterial(object):
-    def __init__(self, df=None):
-        if df is not None:
-            self.data = df
-    
-    def initialise(self, material_name, subtract_baseline=False):
+    def __init__(self, filename, material_name, subtract_baseline=False):
+        self.data_filename = filename
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
         self.material = materials[self.material_name]
-        self.matches = Matches(material_name)
+        self.matches = Matches(filename, material_name)
         self.load_data()
 
     def subtract_baseline_data(self):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
+        index_to_compare = np.random.randint(0, len(self.data))
+        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(self.data.iloc[index_to_compare])
         print("subtracting baselines.... please wait!")
         for i in range(len(self.data)):
             # painful but simple way is prohibitively slow
-            new = np.concatenate([np.array([data_raw.iloc[i].x]), np.array([data_raw.iloc[i].y]), np.array(data_raw.iloc[i][2:] - baseline_als(data_raw.iloc[i][2:]))])
+            new = np.concatenate([np.array([self.data.iloc[i].x]), np.array([self.data.iloc[i].y]), np.array(self.data.iloc[i][2:] - baseline_als(self.data.iloc[i][2:]))])
             self.data.loc[i] = new
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
+        self.random_sample_compare_after_subtract_baseline = self.data.iloc[index_to_compare]
         self.data.to_csv(baseline_filename, sep='\t')
 
 
 
     def load_data(self):
         # td.columns is the raman wavelength
-        self.data = self.data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        fname = self.data_filename
+        print("reading data from %s to locate %s" % (fname, self.material_name))
+        data= pd.read_csv(fname, sep='\t', encoding='utf-8')
+        self.data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
@@ -193,9 +198,7 @@ class FindMaterial(object):
                 return True, con
         return False, 0
 
-    def find_matches(self, material_name, subtract_baseline=False):
-        print('find_matches called with %s and %s' % (material_name, str(subtract_baseline)))
-        self.initialise(material_name, subtract_baseline)
+    def find_matches(self):
         self.find_indices_of_peak_wavelengths()
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
