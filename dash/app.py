@@ -50,7 +50,7 @@ app = Flask(__name__)
 #app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 print UPLOAD_FOLDER
 SECRET_KEY = 'hard to guess string'
-UPLOAD_FOLDER = 'data/'
+UPLOAD_FOLDER = 'uploads/'
 THUMBNAIL_FOLDER = 'data/thumbnail/'
 
 
@@ -80,7 +80,7 @@ def gen_file_name(filename):
     """
 
     i = 1
-    while os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+    while os.path.exists(os.path.join('UPLOAD_FOLDER', filename)):
         name, extension = os.path.splitext(filename)
         filename = '%s_%s%s' % (name, str(i), extension)
         i += 1
@@ -91,11 +91,11 @@ def gen_file_name(filename):
 def create_thumbnail(image):
     try:
         base_width = 80
-        img = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image))
+        img = Image.open(os.path.join('UPLOAD_FOLDER', image))
         w_percent = (base_width / float(img.size[0]))
         h_size = int((float(img.size[1]) * float(w_percent)))
         img = img.resize((base_width, h_size), PIL.Image.ANTIALIAS)
-        img.save(os.path.join(app.config['THUMBNAIL_FOLDER'], image))
+        img.save(os.path.join('THUMBNAIL_FOLDER', image))
 
         return True
 
@@ -104,9 +104,9 @@ def create_thumbnail(image):
         return False
 
 
-@app.route("/upload2", methods=['GET', 'POST'])
+@app.route("/upload", methods=['GET', 'POST'])
 def upload2():
-    print('upload 2')
+    print('upload')
     if request.method == 'POST':
         files = request.files['file']
 
@@ -132,8 +132,9 @@ def upload2():
 
                 # return json for js call back
                 result = uploadfile(name=filename, type=mime_type, size=size)
+                print result.get_file()
             
-            return simplejson.dumps({"files": [result.get_file()]})
+            return render_template('file_uploaded.html', filename=filename)
 
     if request.method == 'GET':
         # get all file in ./data directory
@@ -179,19 +180,6 @@ def get_file(filename):
     return send_from_directory(os.path.join(UPLOAD_FOLDER), filename=filename)
 
 
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        file = request.files['file']
-        filename = secure_filename(file.filename)
-        if not os.path.exists(os.path.join(app.config['assets_folder'], filename)):
-            file.save(os.path.join(app.config['assets_folder'], filename))
-    return '''
-            <form method=post enctype=multipart/form-data>
-                <input type=file name=file>
-                <input type=submit value=Upload>
-            </form>
-            '''
     
 
 #@cache.memoize()
@@ -206,6 +194,12 @@ def initialise_find_materials(material, subtract_baseline):
     find_material.initialise(material, subtract_baseline)
 
 
+@app.route('/find_peaks', methods=['POST'])
+def actually_do_the_stuff():
+    print('called find peaks')
+    option = request.form['options']
+    print option
+    #if option == 'with':
 
 @app.route('/test', methods=['GET', 'POST'])
 def index():
