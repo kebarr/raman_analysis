@@ -174,12 +174,9 @@
                         processData: false,
                         success: function(data) {
                         img = document.createElement("img");
-                        var loc = window.location.pathname;
-                        var dir = loc.substring(0, loc.lastIndexOf('/'));
-                        console.log(dir);
                         //img.src = "http://127.0.0.1:5000/uploads/L_M12_Spleen_Sec1_Area.bmp"
                         //img.src="/Users/mbbxhkb2/Documents/raman_imaging/find_peaks/dash/uploads/" + data.name
-                        //img.src = data.url
+                        img.src = "data:image/png;base64,"+data.image
                         var elem = document.getElementById("for-image")
                         elem.appendChild(img)
                     console.log('Success!');

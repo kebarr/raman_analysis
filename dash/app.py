@@ -222,8 +222,9 @@ def upload_image():
                 print size
                 # return json for js call back
                 result = uploadfile(name=filename, type=mime_type, size=size)
-                print result.get_file()
-                return result.get_file()
+                with open(uploaded_file_path, 'rb') as image:
+                    img_str = base64.b64encode(image.read())
+                return {'image': img_str}
 
 
 #@app.route('show_image/<filename>')
