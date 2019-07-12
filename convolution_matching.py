@@ -14,7 +14,7 @@ import pandas as pd
 from scipy import optimize, signal
 import scipy
 from sklearn import preprocessing
-#import collections
+import collections
 
 
 def read_template(name):
@@ -44,34 +44,6 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
         z = scipy.sparse.linalg.spsolve(Z, w*y)
         w = p * (y > z) + (1-p) * (y < z)
     return z
-
-# don't think this is needed and probably memory inefficient
-class Match(object):
-    def __init__(self, index, confidence):
-        self.index = index
-        self.confidence = confidence
-
-
-class Matches(object):
-    def __init__(self, filename, material_name, med_thresh=60, high_thresh=68):
-        self.filename = filename
-        self.material_name = material_name
-        self.med_thresh = med_thresh
-        self.high_thresh = high_thresh
-        self.matches = []
-        self.high_confidence = []
-        self.med_confidence = []
-
-    def add_match(self, index, confidence):
-        self.matches.append((index, confidence))
-        if confidence > self.high_thresh:
-            self.high_confidence.append(len(self.matches) -1)
-            self.med_confidence.append(len(self.matches) -1)    
-        elif confidence > self.med_thresh:
-            self.med_confidence.append(len(self.matches) -1)
-        
-
-
 
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
 # Input: raman spectral data
@@ -228,8 +200,7 @@ class FindMaterial(object):
     def find_match_positions(self):
         match_positions = []
         for match in self.matches.matches:
-            print("match %d" % (match))
-            match_positions.append((self.data.x[match], self.data.y[match]))
+            match_positions.append((self.data.x[match[0]], self.data.y[match[0]]))
         self.match_positions = match_positions
 
     def plot_matches(self):

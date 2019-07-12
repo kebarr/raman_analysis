@@ -203,6 +203,7 @@ def upload_image():
                 material = request.form.get("material")
                 print(request.form.keys)
                 print(data_filename, material)
+                
                 with open(uploaded_file_path, 'rb') as image:
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str}
