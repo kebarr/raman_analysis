@@ -16,6 +16,8 @@ import scipy
 from sklearn import preprocessing
 import collections
 
+from match_support_classes import Matches, MatchImage
+
 
 def read_template(name):
         filename = name + '.csv'
@@ -175,8 +177,6 @@ class FindMaterial(object):
         number_locations = len(self.data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
-        matches = []
-        confidences = []
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
@@ -197,11 +197,19 @@ class FindMaterial(object):
     def get_med_confidence_matches(self):
         return self.get_condifence_matches()
 
-    def find_match_positions(self):
-        match_positions = []
-        for match in self.matches.matches:
-            match_positions.append((self.data.x[match[0]], self.data.y[match[0]]))
-        self.match_positions = match_positions
+    def overlay_match_positions(self, bitmap_filename, output_filename, confidence="medium"):
+        mi = MatchImage(self.data)
+        mi.add_image(bitmap_filename)
+        if confidence == "medium":
+            matches = self.get_med_confidence_matches()
+        elif confidence == "high":
+            matches = self.get_high_confidence_matches()
+        else:
+            matches = self.matches.matches
+        # matches is (match_index, confidence score)
+        for match, confidence in matches:
+            mi.add_value_to_image(match, confidence)
+        mi.show_matches_on_image(output_filename)
 
     def plot_matches(self):
         for match in self.matches:

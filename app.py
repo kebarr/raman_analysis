@@ -159,12 +159,13 @@ def plot_random_baseline_example(fm):
 
 
 # actually make a new template for this, with graphs!!
-def plot_example_match(fm):
-    number_matches = len(fm.matches.matches)
+def plot_example_match(fm, confidence="medium"):
+    matches = fm.get_condifence_matches(confidence)
+    number_matches = len(matches)
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
-    m1 = fm.data.iloc[index_to_plot_1]
-    m2 = fm.data.iloc[index_to_plot_2]
+    m1 = fm.data.iloc[matches[index_to_plot_1]]
+    m2 = fm.data.iloc[matches[index_to_plot_2]]
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     string = '%d matches found' % number_matches
     fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
@@ -203,7 +204,7 @@ def upload_image():
                 material = request.form.get("material")
                 print(request.form.keys)
                 print(data_filename, material)
-                
+
                 with open(uploaded_file_path, 'rb') as image:
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str}
