@@ -1,12 +1,11 @@
 import os
 import math
+import copy
 import random
 import csv
 import string
 import collections
 import numpy as np
-from flask.ext.socketio import SocketIO, emit
-
 import matplotlib
 matplotlib.use('TkAgg')
 
@@ -29,7 +28,7 @@ def read_template(name):
         return t
 
 material = collections.namedtuple('material', 'name peaks template')
-graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('templates/graphene_oxide'))
+graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('matching_templates/graphene_oxide'))
 materials = {'graphene_oxide': graphene_oxide}
 
 # function to baseline data
@@ -54,9 +53,9 @@ class Match(object):
 
 
 class Matches(object):
-    def __init__(self, material_name, data_filename, med_thresh=60, high_thresh=68):
+    def __init__(self, filename, material_name, med_thresh=60, high_thresh=68):
+        self.filename = filename
         self.material_name = material_name
-        self.data_filename = data_filename
         self.med_thresh = med_thresh
         self.high_thresh = high_thresh
         self.matches = []
@@ -79,44 +78,46 @@ class Matches(object):
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
 class FindMaterial(object):
-    def __init__(self, material_name, data_filename, subtract_baseline=False):
+    def __init__(self, filename, material_name, subtract_baseline=False):
+        self.data_filename = filename
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
-        self.data_filename = data_filename
         self.material = materials[self.material_name]
-        self.matches = Matches(material_name, data_filename)
+        self.matches = Matches(filename, material_name)
         self.load_data()
 
     def subtract_baseline_data(self):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
+        index_to_compare = np.random.randint(0, len(self.data))
+        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(self.data.iloc[index_to_compare])
         print("subtracting baselines.... please wait!")
         for i in range(len(self.data)):
             # painful but simple way is prohibitively slow
-            new = np.concatenate([np.array([data_raw.iloc[i].x]), np.array([data_raw.iloc[i].y]), np.array(data_raw.iloc[i][2:] - baseline_als(data_raw.iloc[i][2:]))])
+            new = np.concatenate([np.array([self.data.iloc[i].x]), np.array([self.data.iloc[i].y]), np.array(self.data.iloc[i][2:] - baseline_als(self.data.iloc[i][2:]))])
             self.data.loc[i] = new
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
+        self.random_sample_compare_after_subtract_baseline = self.data.iloc[index_to_compare]
         self.data.to_csv(baseline_filename, sep='\t')
 
 
 
     def load_data(self):
-        fname = self.data_filename
-        emit("reading data from %s to locate %s" % (fname, self.material_name))
-        data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         # td.columns is the raman wavelength
-        data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        fname = self.data_filename
+        print("reading data from %s to locate %s" % (fname, self.material_name))
+        data= pd.read_csv(fname, sep='\t', encoding='utf-8')
+        self.data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
-        self.data = data
         if self.subtract_baseline:
             self.subtract_baseline_data()
         # should be better way to do this, but i can't find it
-        wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
-        for i, col in enumerate(data.columns[2:]):
+        wavelengths = np.array([0 for i in range(len(self.data.columns[2:]))])
+        for i, col in enumerate(self.data.columns[2:]):
             wavelengths[i] = float(col)
         self.wavelengths = wavelengths
-        emit("successfully loaded data")
+        print("successfully loaded data")
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
