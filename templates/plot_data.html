@@ -7,6 +7,7 @@
     <!-- TODO: test with baseline!! -->
 
     <blockquote>
+        Found {{number_matches}} locations out of {{number_locations}} positive for {{material}}.
         <!-- TODO: include confidence values!!!! -->
             {% if baseline_example is defined %}
             <div display="none" id="subtract_baseline_true"> </div>>
@@ -28,13 +29,16 @@
             <form id="upload-file" method="post" enctype="multipart/form-data">
                 <fieldset>
                     <label for="file">Select a photo</label>
-                    <input name="file" type="file">
+                    <input name="file" type="file"></br>
+                    Output filename: 
+                    <input type="text" name="output_filename"></br>
                 </fieldset>
                 <fieldset>
-                    <button id="upload-file-btn" type="button">Upload</button>
+                    <button id="upload-file-btn" type="button">Upload and plot locations</button>
                 </fieldset>
                 <input type="hidden" name="filename"  value = {{filename}} > 
                 <input type="hidden" name="material" value = {{material}} >
+                <input type="hidden" name="sb" value = {{subtract_baseline}}>
             </form>
             <div id="for-image">
             </div>>
@@ -190,18 +194,6 @@
         });
     });
               </script>
-<!-- <script>
-    $.ajax({
-    type: 'GET',
-    cache: false,
-    url: "{{ url_for('plot_match_positions_on_image') }}", 
-    success: function(resp){
-        var elem = document.createElement("img");
-        document.getElementById("for_bmp").appendChild(elem);
-        elem.src = "data:image/png;base64,"+resp.data;
-    }
-});
-</script> -->
 <!-- The XDomainRequest Transport is included for cross-domain file deletion for IE 8 and IE 9 -->
 <!--[if (gte IE 8)&(lt IE 10)]>
 <script src="js/cors/jquery.xdr-transport.js"></script>

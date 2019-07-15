@@ -51,6 +51,7 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
 # Input: raman spectral data
 # Each desired material must have a profile, this includes a template and the positions of peaks
 
+# refactor to avoid caching large amounts of data: 
 class FindMaterial(object):
     def __init__(self, filename, material_name, subtract_baseline=False):
         self.data_filename = filename
@@ -58,20 +59,21 @@ class FindMaterial(object):
         self.material_name = material_name
         self.material = materials[self.material_name]
         self.matches = Matches(filename, material_name)
-        self.load_data()
+        data = self.load_data()
+        self.find_matches(data)
 
-    def subtract_baseline_data(self):
+    def subtract_baseline_data(self, data):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
-        index_to_compare = np.random.randint(0, len(self.data))
-        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(self.data.iloc[index_to_compare])
+        index_to_compare = np.random.randint(0, len(data))
+        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(data.iloc[index_to_compare])
         print("subtracting baselines.... please wait!")
-        for i in range(len(self.data)):
+        for i in range(len(data)):
             # painful but simple way is prohibitively slow
-            new = np.concatenate([np.array([self.data.iloc[i].x]), np.array([self.data.iloc[i].y]), np.array(self.data.iloc[i][2:] - baseline_als(self.data.iloc[i][2:]))])
-            self.data.loc[i] = new
+            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), np.array(data.iloc[i][2:] - baseline_als(data.iloc[i][2:]))])
+            data.loc[i] = new
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
-        self.random_sample_compare_after_subtract_baseline = self.data.iloc[index_to_compare]
-        self.data.to_csv(baseline_filename, sep='\t')
+        self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
+        data.to_csv(baseline_filename, sep='\t')
 
 
 
@@ -80,18 +82,23 @@ class FindMaterial(object):
         fname = self.data_filename
         print("reading data from %s to locate %s" % (fname, self.material_name))
         data= pd.read_csv(fname, sep='\t', encoding='utf-8')
-        self.data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
         if self.subtract_baseline:
-            self.subtract_baseline_data()
+           data = self.subtract_baseline_data(data)
         # should be better way to do this, but i can't find it
-        wavelengths = np.array([0 for i in range(len(self.data.columns[2:]))])
-        for i, col in enumerate(self.data.columns[2:]):
+        wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
+        for i, col in enumerate(data.columns[2:]):
             wavelengths[i] = float(col)
         self.wavelengths = wavelengths
         print("successfully loaded data")
+        # not really any restrictions on size/shape of image so can't really do any sanity checks here.
+        self.len_x = len(data.loc[data["x"] == data.x[0]])
+        self.len_y = int(len(data)/float(self.len_x))
+        self.len = len(data)
+        return data
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
@@ -124,8 +131,8 @@ class FindMaterial(object):
 
 
 
-    def prepare_data(self, index):
-        d = self.data.iloc[index].values[self.lowest_index:self.highest_index]
+    def prepare_data(self, data, index):
+        d = data.iloc[index].values[self.lowest_index:self.highest_index]
         d = d.reshape((len(d), 1))
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
@@ -134,15 +141,15 @@ class FindMaterial(object):
      
 
     # TODO COMPARE PERFORMANCE OF DOING THIS FIRST AND CONVOLUTION SECOND, OR OTHER WAY ROUND
-    def check_match(self, index):
+    def check_match(self, data, index):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(self.data.iloc[index][peak_start:peak_end]) + 50
+        mean_peaks = np.mean(data.iloc[index][peak_start:peak_end]) + 50
         # cut off first bit cos there's some weirdness in Cyrills data.
-        mean_non_peaks = (np.mean(self.data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(self.data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
-        stdev_non_peaks = np.std(np.concatenate([self.data.iloc[index][200:self.peak_indices[0][0]], self.data.iloc[index][self.peak_indices[0][-1]:]]))
+        mean_non_peaks = (np.mean(data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
+        stdev_non_peaks = np.std(np.concatenate([data.iloc[index][200:self.peak_indices[0][0]], data.iloc[index][self.peak_indices[0][-1]:]]))
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
@@ -159,10 +166,10 @@ class FindMaterial(object):
         else:
             return False, 0
 
-    def is_match(self, index):
-        res, con = self.check_match(index)
+    def is_match(self, data, index):
+        res, con = self.check_match(data, index)
         if res:
-            to_match = self.prepare_data(index)
+            to_match = self.prepare_data(data, index)
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
@@ -172,17 +179,17 @@ class FindMaterial(object):
                 return True, con
         return False, 0
 
-    def find_matches(self):
+    def find_matches(self, data):
         self.find_indices_of_peak_wavelengths()
-        number_locations = len(self.data)
+        number_locations = len(data)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-            match, con = self.is_match(i)
+            match, con = self.is_match(data, i)
             if match == True:
-                self.matches.add_match(i, con)
+                self.matches.add_match(i, con, data.iloc[i])
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_condifence_matches(self, thresh='medium'):
@@ -198,7 +205,7 @@ class FindMaterial(object):
         return self.get_condifence_matches()
 
     def overlay_match_positions(self, bitmap_filename, output_filename, confidence="medium"):
-        mi = MatchImage(self.data)
+        mi = MatchImage(self.len_x, self.len_y)
         mi.add_image(bitmap_filename)
         if confidence == "medium":
             matches = self.get_med_confidence_matches()

@@ -129,10 +129,10 @@ def delete(filename):
 
 
 # think redis has a limit on size of command, as getting a socket timeout
-#@cache.memoize()
+# added 'maxmemory 10GB' to redis.conf # in top says 15M
+@cache.memoize()
 def find_material(filename, material, subtract_baseline):
     fm=  FindMaterial(filename, material, subtract_baseline)
-    fm.find_matches()
     return fm
 
 def start_find_materials():
@@ -152,7 +152,7 @@ def plot_random_baseline_example(fm):
     io = StringIO()
     fig.savefig(io, format='png')
     data = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=len(fm.matches), number_locations=len(fm.data), baseline_example=data, filename=fm.data_filename, material="graphene_oxide")
+    return render_template('plot_data.html', number_matches=len(fm.matches), number_locations=fm.len, baseline_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
 
 
 
@@ -162,10 +162,10 @@ def plot_example_match(fm, confidence="medium"):
     number_matches = len(matches)
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
-    m1 = fm.data.iloc[matches[index_to_plot_1][0]]
-    m2 = fm.data.iloc[matches[index_to_plot_2][0]]
+    m1 = fm.matches.matches[index_to_plot_1][2]
+    m2 = fm.matches.matches[index_to_plot_2][2]
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
-    string = '%d matches found' % number_matches
+    #string = '%d matches found' % number_matches
     fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
     plt.ylim(ymin=-200, ymax=ymax)
     m1.plot(ax=ax1)
@@ -173,11 +173,7 @@ def plot_example_match(fm, confidence="medium"):
     io = StringIO()
     fig.savefig(io, format='png')
     data = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=len(fm.data), match_example=data, filename=fm.data_filename, material="graphene_oxide")
-
-@app.route('/plot_match_positions_on_image', methods=['GET', 'POST'])
-def plot_match_positions_on_image():
-    pass
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
@@ -189,27 +185,30 @@ def upload_image():
             filename = gen_file_name(filename)
             if filename.endswith(".bmp") or filename.endswith(".jpeg"):
                 mime_type = files.content_type
-                print('in else')
                 # save file to disk
                 uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
                 files.save(uploaded_file_path)
                 # get file size after saving
                 size = os.path.getsize(uploaded_file_path)
-                print size
                 uploadfile(name=filename, type=mime_type, size=size)
                 data_filename = request.form.get("filename")
                 material = request.form.get("material")
-                print(request.form.keys)
-                print(data_filename, material)
-
+                sb = request.form.get("sb")
+                output_filename = request.form.get("output_filename")
+                fm = find_material(data_filename, material, sb)
+                fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(uploaded_file_path, 'rb') as image:
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str}
 
 
-#@app.route('show_image/<filename>')
-#def show_image(filename):
-#    return send_from_directory(UPLOAD_FOLDER, filename)
+
+@app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    uploads = os.path.join(current_app.root_path, app.config['UPLOAD_FOLDER'])
+    return send_from_directory(directory=uploads, filename=filename, as_attachment=True)
+
+# TODO: export sample spectra, shuffle random spectrum in case poor match shown
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():

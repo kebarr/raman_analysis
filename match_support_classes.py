@@ -14,8 +14,8 @@ class Matches(object):
         self.high_confidence = []
         self.med_confidence = []
 
-    def add_match(self, index, confidence):
-        self.matches.append((index, confidence))
+    def add_match(self, index, confidence, spectrum):
+        self.matches.append((index, confidence, spectrum))
         if confidence > self.high_thresh:
             self.high_confidence.append(len(self.matches) -1)
             self.med_confidence.append(len(self.matches) -1)    
@@ -24,19 +24,20 @@ class Matches(object):
         
 
 class MatchImage(object):
-    def __init__(self, df):
-        # not really any restrictions on size/shape of image so can't really do any sanity checks here.
-        self.len_x = len(df.loc[df["x"] == df.x[0]])
-        self.len_y = int(len(df)/float(self.len_x))
+    def __init__(self, x, y):
+        self.len_x = x
+        self.len_y = y
+        print(x, y)
         #self.match_image = np.zeros((self.len_x, self.len_y, 4), np.uint8)
 
     def add_image(self, image_filename, testing = True):
         # in Andy's code, it looks like he just resizes to make both the same dimensions!!
         im = Image.open(image_filename)
         im = im.convert("RGBA")
-        self.im = im.resize((self.len_x+1, self.len_y+1))
+        #resize image leaves slight border around the outside, so increase dimensions so actual image dimensions match
+        self.im = im.resize((self.len_x+4, self.len_y+4))
         self.im_array = np.array(self.im)
-
+        print(self.im_array.shape)
 
     def add_value_to_image(self, i, con):
         x = int(i)/int(self.len_y)
