@@ -25,36 +25,32 @@ class Matches(object):
 
 class MatchImage(object):
     def __init__(self, df):
+        # not really any restrictions on size/shape of image so can't really do any sanity checks here.
         self.len_x = len(df.loc[df["x"] == df.x[0]])
         self.len_y = int(len(df)/float(self.len_x))
-        self.match_image = np.zeros((self.len_x, self.len_y), np.uint8)
+        #self.match_image = np.zeros((self.len_x, self.len_y, 4), np.uint8)
+
+    def add_image(self, image_filename, testing = True):
+        # in Andy's code, it looks like he just resizes to make both the same dimensions!!
+        im = Image.open(image_filename)
+        im = im.convert("RGBA")
+        self.im = im.resize((self.len_x+1, self.len_y+1))
+        self.im_array = np.array(self.im)
+
 
     def add_value_to_image(self, i, con):
         x = int(i)/int(self.len_y)
-        y = i%(x*self.len_y)
-        self.match_image[x, y] = [0, 0, 255, np.uint8(con*0.01*255)]
-
-    def add_image(self, image_filename, testing = True):
-        self.im = Image.open(image_filename)
-        np_im = np.array(self.im)
-        im_shape = np_im.shape
-        im_x = im_shape[0]
-        im_y = im_shape[1]
-        if not testing:
-            if im_x != self.len_x:
-                raise ValueError("image x dimension, %d, does not match data x dimension, %d" % (im_x, self.len_x))
-            if im_y != self.len_y:
-                raise ValueError("image y dimension, %d, does not match data y dimension, %d" % (im_y, self.len_y))
+        if x == 0:
+            # avoid division by 0
+            y = i
+        else:
+            y = i%(x*self.len_y)
+        # just override previous value in image
+        self.im_array[x+2, y+1] = [0, 0, 255, np.uint8(con*0.01*255)]
 
     # need to ask Andy about this
-    def show_matches_on_image(self, output_filename):
-        final_match_image = Image.fromarray(self.match_image)
-        print(np.array(self.im).shape, self.match_image.shape)
-        result = Image.blend(self.im, final_match_image, 0.5)
-        result.save(output_filename, "PNG")
-        # if this doesn't look good, try:
-        #background.paste(img, (0, 0), img)
-        #background.save('how_to_superimpose_two_images_01.png',"PNG")
-
+    def save_image(self, output_filename):
+        final = Image.fromarray(self.im_array)
+        final.save(output_filename, "PNG")
 
 
