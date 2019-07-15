@@ -209,10 +209,4 @@ class FindMaterial(object):
         # matches is (match_index, confidence score)
         for match, confidence in matches:
             mi.add_value_to_image(match, confidence)
-        mi.show_matches_on_image(output_filename)
-
-    def plot_matches(self):
-        for match in self.matches:
-            self.data.iloc[match].plot()
-            plt.show()
-
+        mi.save_image(output_filename)

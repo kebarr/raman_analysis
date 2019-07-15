@@ -128,12 +128,10 @@ def delete(filename):
 
 
 
-@cache.memoize()
+# think redis has a limit on size of command, as getting a socket timeout
+#@cache.memoize()
 def find_material(filename, material, subtract_baseline):
-    return FindMaterial(filename, material, subtract_baseline)
-
-@cache.memoize()
-def find_matches(fm):
+    fm=  FindMaterial(filename, material, subtract_baseline)
     fm.find_matches()
     return fm
 
@@ -164,8 +162,8 @@ def plot_example_match(fm, confidence="medium"):
     number_matches = len(matches)
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
-    m1 = fm.data.iloc[matches[index_to_plot_1]]
-    m2 = fm.data.iloc[matches[index_to_plot_2]]
+    m1 = fm.data.iloc[matches[index_to_plot_1][0]]
+    m2 = fm.data.iloc[matches[index_to_plot_2][0]]
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     string = '%d matches found' % number_matches
     fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
@@ -198,8 +196,7 @@ def upload_image():
                 # get file size after saving
                 size = os.path.getsize(uploaded_file_path)
                 print size
-                # return json for js call back
-                result = uploadfile(name=filename, type=mime_type, size=size)
+                uploadfile(name=filename, type=mime_type, size=size)
                 data_filename = request.form.get("filename")
                 material = request.form.get("material")
                 print(request.form.keys)
@@ -223,8 +220,6 @@ def actually_do_the_stuff():
     subtract_baseline = True if option == 'with' else False
     start_find_materials()
     fm = find_material(filename, 'graphene_oxide', subtract_baseline)
-    find_materials_initialised()
-    fm = find_matches(fm)
     if subtract_baseline:
         plot_random_baseline_example(fm)
     return plot_example_match(fm)
