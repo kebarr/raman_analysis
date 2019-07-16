@@ -10,6 +10,8 @@ from werkzeug.utils import secure_filename
 from convolution_matching import FindMaterial
 from flask_caching import Cache
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -132,6 +134,7 @@ def delete(filename):
 # added 'maxmemory 10GB' to redis.conf # in top says 15M
 @cache.memoize()
 def find_material(filename, material, subtract_baseline):
+    print(filename, material, subtract_baseline)
     fm=  FindMaterial(filename, material, subtract_baseline)
     return fm
 
@@ -177,7 +180,7 @@ def plot_example_match(fm, confidence="medium"):
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
-    print request.files
+    print('!!!!!!!!', request.files)
     if request.method == 'POST':
         files = request.files['file']
         if files:
@@ -197,7 +200,7 @@ def upload_image():
                 output_filename = request.form.get("output_filename")
                 fm = find_material(data_filename, material, sb)
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
-                with open(uploaded_file_path, 'rb') as image:
+                with open(output_filename, 'rb') as image:
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str}
 
@@ -205,21 +208,20 @@ def upload_image():
 
 @app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
 def download(filename):
-    uploads = os.path.join(current_app.root_path, app.config['UPLOAD_FOLDER'])
+    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
     return send_from_directory(directory=uploads, filename=filename, as_attachment=True)
 
 # TODO: export sample spectra, shuffle random spectrum in case poor match shown
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
-    print('called find peaks', request.form.keys)
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
+    subtract_baseline = u'True' if option == 'with' else u'False'
     print option, filename
-    subtract_baseline = True if option == 'with' else False
     start_find_materials()
-    fm = find_material(filename, 'graphene_oxide', subtract_baseline)
-    if subtract_baseline:
+    fm = find_material(filename, u'graphene_oxide', subtract_baseline)
+    if subtract_baseline == 'True':
         plot_random_baseline_example(fm)
     return plot_example_match(fm)
 
@@ -253,3 +255,9 @@ if __name__ == '__main__':
 
 #sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' ./flask-file-uploader/static/js/main.js
 #sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' 
+# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', 'graphene_oxide', False)
+
+# first call: (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', 'graphene_oxide', u'False')
+# is now: (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
+#         (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
+# theyt're exactly the same so pwhat is the issue!!!

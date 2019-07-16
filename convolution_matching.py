@@ -6,16 +6,13 @@ import csv
 import string
 import collections
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
-
-import matplotlib.pyplot as plt
 import pandas as pd
 from scipy import optimize, signal
 import scipy
 from sklearn import preprocessing
 import collections
 
+from PIL import Image
 from match_support_classes import Matches, MatchImage
 
 
@@ -53,7 +50,7 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
 
 # refactor to avoid caching large amounts of data: 
 class FindMaterial(object):
-    def __init__(self, filename, material_name, subtract_baseline=False):
+    def __init__(self, filename, material_name, subtract_baseline='False'):
         self.data_filename = filename
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
@@ -86,7 +83,7 @@ class FindMaterial(object):
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
-        if self.subtract_baseline:
+        if self.subtract_baseline == 'True':
            data = self.subtract_baseline_data(data)
         # should be better way to do this, but i can't find it
         wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
@@ -214,6 +211,7 @@ class FindMaterial(object):
         else:
             matches = self.matches.matches
         # matches is (match_index, confidence score)
-        for match, confidence in matches:
+        for match, confidence, _ in matches:
             mi.add_value_to_image(match, confidence)
         mi.save_image(output_filename)
+        return Image.fromarray(mi.im_array)
