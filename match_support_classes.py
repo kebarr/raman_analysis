@@ -27,7 +27,7 @@ class MatchImage(object):
         print(x, y)
         #self.match_image = np.zeros((self.len_x, self.len_y, 4), np.uint8)
 
-    def add_image(self, image_filename, testing = True):
+    def add_image(self, image_filename):
         # in Andy's code, it looks like he just resizes to make both the same dimensions!!
         im = Image.open(image_filename)
         im = im.convert("RGBA")
@@ -43,8 +43,19 @@ class MatchImage(object):
             y = i
         else:
             y = i%(x*self.len_y)
+        # scale it manually to increase contrast
+        if con > 80:
+            contrast = 100
+        elif con > 70:
+            contrast = 50
+        elif con > 60:
+            contrast = 30 # previousl 50
+        elif con > 50:
+            contrast = 10 # 30
+        else:
+            contrast = 5 # 10
         # just override previous value in image
-        self.im_array[x+2, y+1] = [0, 0, 255, np.uint8(con*0.01*255)]
+        self.im_array[x+2, y+1] = [255, 128, 0, np.uint8(con*0.01*255)]
 
     # need to ask Andy about this
     def save_image(self, output_filename):

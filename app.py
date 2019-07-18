@@ -92,6 +92,7 @@ def upload():
                 # save file to disk
                 uploaded_file_path = os.path.join(app.config['UPLOAD_FOLDER'] , filename)
                 if os.path.exists(uploaded_file_path):
+                    # TODO if file exists, don't recompute, store peaks and reload to save computing time
                     return render_template('file_uploaded.html', filename=filename + " already uploaded, ready for use")
                 files.save(uploaded_file_path)
                 
@@ -179,7 +180,7 @@ def upload_image():
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(output_filename, 'rb') as image:
                     img_str = base64.b64encode(image.read())
-                return {'image': img_str}
+                return {'image': img_str, 'output_filename': output_filename}
 
 
 
@@ -202,6 +203,10 @@ def actually_do_the_stuff():
         plot_random_baseline_example(fm)
     return plot_example_match(fm)
 
+# @app.route('download-image', methods=['POST'])
+# def send_image_to_user():
+#     filename = 
+#     send_from_directory()
 
 @app.route('/')
 def home():
