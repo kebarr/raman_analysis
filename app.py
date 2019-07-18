@@ -85,11 +85,14 @@ def upload():
             mime_type = files.content_type
 
             if not allowed_file(files.filename):
-                result = uploadfile(name=filename, type=mime_type, size=0, not_allowed_msg="File type not allowed")
+                print(files.filename)
+                return render_template('file_uploaded.html', filename_not_uploaded=filename + " File type not allowed, not uploaded")
 
             else:
                 # save file to disk
                 uploaded_file_path = os.path.join(app.config['UPLOAD_FOLDER'] , filename)
+                if os.path.exists(uploaded_file_path):
+                    return render_template('file_uploaded.html', filename=filename + " already uploaded, ready for use")
                 files.save(uploaded_file_path)
                 
                 # get file size after saving
@@ -99,34 +102,8 @@ def upload():
                 result = uploadfile(name=filename, type=mime_type, size=size)
                 print result.get_file()
             
-            return render_template('file_uploaded.html', filename=filename)
+                return render_template('file_uploaded.html', filename=filename)
 
-    if request.method == 'GET':
-        # get all file in ./data directory
-        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER'] ) if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'] ,f)) and f not in IGNORED_FILES ]
-        
-        file_display = []
-
-        for f in files:
-            size = os.path.getsize(os.path.join(app.config['UPLOAD_FOLDER'], f))
-            file_saved = uploadfile(name=f, size=size)
-            file_display.append(file_saved.get_file())
-
-        return simplejson.dumps({"files": file_display})
-
-    return redirect(url_for('index'))
-
-
-@app.route("/delete/<string:filename>", methods=['DELETE'])
-def delete(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'] , filename)
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-            
-            return simplejson.dumps({filename: 'True'})
-        except:
-            return simplejson.dumps({filename: 'False'})
 
 
 
@@ -224,6 +201,11 @@ def actually_do_the_stuff():
     if subtract_baseline == 'True':
         plot_random_baseline_example(fm)
     return plot_example_match(fm)
+
+
+@app.route('/')
+def home():
+    return render_template('file_uploaded.html')
 
 @app.route('/test', methods=['GET', 'POST'])
 def index():
