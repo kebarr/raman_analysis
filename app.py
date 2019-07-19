@@ -22,7 +22,6 @@ import traceback
 
 from flask import Flask, request, render_template, redirect, url_for, send_from_directory
 from flask_bootstrap import Bootstrap
-from werkzeug import secure_filename
 
 from lib.upload_file import uploadfile
 
@@ -124,21 +123,23 @@ def find_materials_initialised():
 
 
 # https://gist.github.com/tebeka/5426211
-def plot_random_baseline_example(fm):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
+def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
+    fig, ax = plt.subplots(1,1)
     fm.random_sample_compare_before_subtract_baseline.plot(ax=ax)
     fm.random_sample_compare_after_subtract_baseline.plot(ax=ax)
     ax.set_title("Example with/without baseline subtraction")
+    ax.set(xlabel = 'Shift (cm$^{-1}$)')
+    ax.set(ylabel='Intensity')
     io = StringIO()
     fig.savefig(io, format='png')
-    data = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=len(fm.matches), number_locations=fm.len, baseline_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
+    baseline_example = base64.encodestring(io.getvalue())
+    print(baseline_example)
+    number_matches, data = get_example_matches(fm, confidence, number_to_plot)
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
 
 
 
-# actually make a new template for this, with graphs!!
-def plot_example_match(fm, confidence="medium"):
+def get_example_matches(fm, confidence="medium", number_to_plot=2):
     matches = fm.get_condifence_matches(confidence)
     number_matches = len(matches)
     index_to_plot_1 = np.random.randint(0, number_matches)
@@ -147,7 +148,7 @@ def plot_example_match(fm, confidence="medium"):
     m2 = fm.matches.matches[index_to_plot_2][2]
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     #string = '%d matches found' % number_matches
-    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
     plt.ylim(ymin=-200, ymax=ymax)
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
     ax1.set(ylabel='Intensity')
@@ -157,12 +158,14 @@ def plot_example_match(fm, confidence="medium"):
     m2.plot(ax=ax2)
     io = StringIO()
     fig.savefig(io, format='png')
-    data = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, confidence=confidence)
+    return number_matches, base64.encodestring(io.getvalue())
+
+def plot_example_match(fm, confidence="medium"):
+    number_matches, data = get_example_matches(fm, confidence, number_to_plot=2)
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
-    print('!!!!!!!!', request.files)
     if request.method == 'POST':
         files = request.files['file']
         if files:
@@ -199,12 +202,12 @@ def download(filename):
 def actually_do_the_stuff():
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
-    subtract_baseline = u'True' if option == 'with' else u'False'
+    subtract_baseline = True if option == 'with' else False
     print option, filename
     start_find_materials()
     fm = find_material(filename, u'graphene_oxide', subtract_baseline)
-    if subtract_baseline == 'True':
-        plot_random_baseline_example(fm)
+    if subtract_baseline == True:
+        return plot_random_baseline_example(fm)
     return plot_example_match(fm)
 
 # @app.route('download-image', methods=['POST'])

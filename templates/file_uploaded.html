@@ -49,7 +49,7 @@
             {% if filename is defined %}
             Succesfully uploaded: {{filename}} <br>
             <form id="select_baseline" action="//127.0.0.1:5000/find_peaks" method="post">
-                <input type="radio" name="baseline" value="with" checked> Compute with baseline subtraction <br>
+                <input type="radio" name="baseline" value="with" checked> Compute with baseline subtraction (please be patient, this takes some time) <br>
                 <input type="radio" name="baseline" value="without"> Compute without baseline subtraction (baseline subtraction already performed) <br>
                 
                 <button type="submit" class="btn btn-primary start">

@@ -10,7 +10,6 @@
         Found {{number_matches}} locations out of {{number_locations}} positive for {{material}} with {{confidence}} confidence.
         <!-- TODO: include confidence values!!!! -->
             {% if baseline_example is defined %}
-            <div display="none" id="subtract_baseline_true"> </div>
             <div>
                     <img src="data:image/png;base64,{{baseline_example}}" class="responsive"/>
             </div>
@@ -19,16 +18,26 @@
                 Examples of randomly selected matches (medium confidence):
                     <img src="data:image/png;base64,{{match_example}}"  class="responsive"/>
             </div>
-            <div id = "for_bmp">
-                <form id="plot-different-med-con-spectra" method="post">
-                        <button  id="download-image-btn" type="button">Plot different medium confidence spectra</button>
-                </form>
-                <form id="plot-different-high-con-spectra" method="post">
-                        <button  id="download-image-btn" type="button">Plot different high confidence spectra</button>
-                </form>
-            </div>
+            <div class="row fileupload-buttonbar">
+                <div class="col-lg-7">
+                    <form id="plot-med" method="POST" enctype="multipart/form-data">
+
+                        <!-- The fileinput-button span is used to style the file input field as button -->
+                        <button type="submit" class="btn btn-primary start" id="med-conf">
+                                <span>Plot different medium confidence spectra</span>
+                            </button>
+                    </form>
+                    <form id="plot-high" method="POST" enctype="multipart/form-data">
+
+                        <button type="submit" class="btn btn-primary start" id="high-conf">
+                            <span>Plot different high confidence spectra</span>
+                        </button>
+                    </form>
+                    </div>
+
+                </div>
         </blockquote>
-     
+        <blockquote>    
         <!-- Redirect browsers with JavaScript disabled to the origin page -->
             <noscript><input type="hidden" name="redirect" value="http://blueimp.github.io/jQuery-File-Upload/"></noscript>
             <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
@@ -40,7 +49,7 @@
                     <input type="text" name="output_filename"></br>
                 </fieldset>
                 <fieldset>
-                    <button id="upload-file-btn" type="button">Upload and plot locations</button>
+                    <button id="upload-file-btn" class="btn btn-primary start" type="button">Upload and plot locations</button>
                 </fieldset>
                 <input type="hidden" name="filename"  value = {{filename}} > 
                 <input type="hidden" name="material" value = {{material}} >
@@ -51,10 +60,10 @@
             <div id="for-button" style="display:none;"> 
             <form id="download-image" method="post">
                 <input type="hidden" id = "o" name="output_filename">
-                <button  id="download-image-btn" type="button">Download image of match positions</button>
+                <button  id="download-image-btn" class="btn btn-primary start" type="button">Download image of match positions</button>
             </form>
             </div>
-            <!-- The table listing the files available for upload/download -->
+        </blockquote>
 </div>
 
 {% endblock %}

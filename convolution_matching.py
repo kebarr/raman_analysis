@@ -50,7 +50,7 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
 
 # refactor to avoid caching large amounts of data: 
 class FindMaterial(object):
-    def __init__(self, filename, material_name, subtract_baseline='False'):
+    def __init__(self, filename, material_name, subtract_baseline=False):
         self.data_filename = filename
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
@@ -71,6 +71,7 @@ class FindMaterial(object):
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
         self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
         data.to_csv(baseline_filename, sep='\t')
+        return data
 
 
 
@@ -83,7 +84,7 @@ class FindMaterial(object):
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
-        if self.subtract_baseline == 'True':
+        if self.subtract_baseline == True:
            data = self.subtract_baseline_data(data)
         # should be better way to do this, but i can't find it
         wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
@@ -214,4 +215,4 @@ class FindMaterial(object):
         for match, confidence, _ in matches:
             mi.add_value_to_image(match, confidence)
         mi.save_image(output_filename)
-        return Image.fromarray(mi.im_array)
+        
