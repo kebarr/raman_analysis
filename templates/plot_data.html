@@ -7,7 +7,7 @@
     <!-- TODO: test with baseline!! -->
 
     <blockquote>
-        Found {{number_matches}} locations out of {{number_locations}} positive for {{material}}.
+        Found {{number_matches}} locations out of {{number_locations}} positive for {{material}} with {{confidence}} confidence.
         <!-- TODO: include confidence values!!!! -->
             {% if baseline_example is defined %}
             <div display="none" id="subtract_baseline_true"> </div>
@@ -16,10 +16,16 @@
             </div>
             {% endif %}
             <div>
-                Examples of randomly selected matches:
+                Examples of randomly selected matches (medium confidence):
                     <img src="data:image/png;base64,{{match_example}}"  class="responsive"/>
             </div>
             <div id = "for_bmp">
+                <form id="plot-different-med-con-spectra" method="post">
+                        <button  id="download-image-btn" type="button">Plot different medium confidence spectra</button>
+                </form>
+                <form id="plot-different-high-con-spectra" method="post">
+                        <button  id="download-image-btn" type="button">Plot different high confidence spectra</button>
+                </form>
             </div>
         </blockquote>
      

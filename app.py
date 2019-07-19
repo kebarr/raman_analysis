@@ -147,14 +147,18 @@ def plot_example_match(fm, confidence="medium"):
     m2 = fm.matches.matches[index_to_plot_2][2]
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     #string = '%d matches found' % number_matches
-    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, figsize=(13, 5))
     plt.ylim(ymin=-200, ymax=ymax)
+    ax1.set(xlabel = 'Shift (cm$^{-1}$)')
+    ax1.set(ylabel='Intensity')
+    ax2.set(xlabel = 'Shift (cm$^{-1}$)')
+    ax2.set(ylabel='Intensity')
     m1.plot(ax=ax1)
     m2.plot(ax=ax2)
     io = StringIO()
     fig.savefig(io, format='png')
     data = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False)
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, confidence=confidence)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
