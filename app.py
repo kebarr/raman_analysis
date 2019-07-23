@@ -31,7 +31,6 @@ UPLOAD_FOLDER = cwd + '/uploads'
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-print UPLOAD_FOLDER
 SECRET_KEY = 'hard to guess string'
 UPLOAD_FOLDER = 'uploads/'
 THUMBNAIL_FOLDER = 'data/thumbnail/'
@@ -74,7 +73,6 @@ def gen_file_name(filename):
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
-    print('upload')
     if request.method == 'POST':
         files = request.files['file']
 
@@ -84,7 +82,6 @@ def upload():
             mime_type = files.content_type
 
             if not allowed_file(files.filename):
-                print(files.filename)
                 return render_template('file_uploaded.html', filename_not_uploaded=filename + " File type not allowed, not uploaded")
 
             else:
@@ -100,7 +97,6 @@ def upload():
 
                 # return json for js call back
                 result = uploadfile(name=filename, type=mime_type, size=size)
-                print result.get_file()
             
                 return render_template('file_uploaded.html', filename=filename)
 
@@ -111,7 +107,6 @@ def upload():
 # added 'maxmemory 10GB' to redis.conf # in top says 15M
 @cache.memoize()
 def find_material(filename, material, subtract_baseline):
-    print(filename, material, subtract_baseline)
     fm=  FindMaterial(filename, material, subtract_baseline)
     return fm
 
@@ -133,7 +128,6 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     io = StringIO()
     fig.savefig(io, format='png')
     baseline_example = base64.encodestring(io.getvalue())
-    print(baseline_example)
     number_matches, data = get_example_matches(fm, confidence, number_to_plot)
     return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
 
@@ -189,7 +183,7 @@ def upload_image():
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str, 'output_filename': output_filename}
 
-                
+
 @app.route('/plot_med', methods = ['POST'])
 def plot_med():
         filename = "test.png" # hard code for testing
@@ -218,7 +212,6 @@ def actually_do_the_stuff():
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
     subtract_baseline = True if option == 'with' else False
-    print option, filename
     start_find_materials()
     fm = find_material(filename, u'graphene_oxide', subtract_baseline)
     if subtract_baseline == True:
