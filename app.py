@@ -45,10 +45,12 @@ bootstrap = Bootstrap(app)
 CACHE_CONFIG = {
     # try 'filesystem' if you don't want to setup redis
     'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    'CACHE_DEFAULT_TIMEOUT': 60*60*3
 }
 cache = Cache()
 cache.init_app(app, config=CACHE_CONFIG)
+
 
 
 def allowed_file(filename):
@@ -73,6 +75,8 @@ def gen_file_name(filename):
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
+    # clear the cache here to hopefully make sure it caches properly in subsequent fn calls
+    cache.delete_memoized(find_material)
     if request.method == 'POST':
         files = request.files['file']
 
@@ -97,7 +101,7 @@ def upload():
 
                 # return json for js call back
                 result = uploadfile(name=filename, type=mime_type, size=size)
-            
+                print(result)
                 return render_template('file_uploaded.html', filename=filename)
 
 
@@ -105,16 +109,11 @@ def upload():
 
 # think redis has a limit on size of command, as getting a socket timeout
 # added 'maxmemory 10GB' to redis.conf # in top says 15M
-@cache.memoize()
+@cache.memoize(timeout=60*60)
 def find_material(filename, material, subtract_baseline):
+    print(filename, material, subtract_baseline)
     fm=  FindMaterial(filename, material, subtract_baseline)
     return fm
-
-def start_find_materials():
-    return render_template('file_uploaded.html', status='Loading data into material finder')
-
-def find_materials_initialised():
-    return render_template('file_uploaded.html', status='Data loaded into material finder, starting to look for matches')
 
 
 # https://gist.github.com/tebeka/5426211
@@ -156,7 +155,7 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
 
 def plot_example_match(fm, confidence="medium"):
     number_matches, data = get_example_matches(fm, confidence, number_to_plot=2)
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence)
+    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
@@ -176,14 +175,18 @@ def upload_image():
                 data_filename = request.form.get("filename")
                 material = request.form.get("material")
                 sb = request.form.get("sb")
+                sb_bool = True if sb == "True" else False
                 output_filename = request.form.get("output_filename")
-                fm = find_material(data_filename, material, sb)
+                fm = find_material(data_filename, material, sb_bool)
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(output_filename, 'rb') as image:
                     img_str = base64.b64encode(image.read())
                 return {'image': img_str, 'output_filename': output_filename}
 
 
+# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', False)
+# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', False)
+# now need to wire this in to plot example baseline
 @app.route('/plot_med', methods = ['POST'])
 def plot_med():
         filename = "test.png" # hard code for testing
@@ -199,20 +202,20 @@ def plot_high():
         return {'image': img_str}
 
 
-
-@app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
-def download(filename):
-    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+@app.route('/download_image', methods=['GET', 'POST'])
+def download_image():
+    filename = request.form['output_filename']
+    uploads = os.path.join(app.root_path)
     return send_from_directory(directory=uploads, filename=filename, as_attachment=True)
 
 # TODO: export sample spectra, shuffle random spectrum in case poor match shown
+# show what i've compared and highest confidence match. fix cache.
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
     subtract_baseline = True if option == 'with' else False
-    start_find_materials()
     fm = find_material(filename, u'graphene_oxide', subtract_baseline)
     if subtract_baseline == True:
         return plot_random_baseline_example(fm)
