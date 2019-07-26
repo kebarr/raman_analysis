@@ -127,7 +127,7 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     fig.savefig(io, format='png')
     baseline_example = base64.encodestring(io.getvalue())
     number_matches, data = get_example_matches(fm, confidence, number_to_plot)
-    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name + '.csv')
+    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name)
     print(template_name)
     with open(template_name, 'rb') as image:
         template = base64.b64encode(image.read())
@@ -158,11 +158,15 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
 
 def plot_example_match(fm, confidence="medium"):
     number_matches, data = get_example_matches(fm, confidence, number_to_plot=2)
-    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name + '.csv')
-    print(template_name)
-    with open(template_name, 'rb') as image:
-        template = base64.b64encode(image.read())
-    return render_template('plot_data.html', number_matches=number_matches, template = template, best_match = template, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
+    template_data = fm.material.template
+    fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
+    ax1.set(xlabel = 'Shift (cm$^{-1}$)')
+    ax1.set(ylabel='Intensity')
+    ax1.plot(template_data)
+    io = StringIO()
+    fig.savefig(io, format='png')
+    template = base64.encodestring(io.getvalue())
+    return render_template('plot_data.html', number_matches=number_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
@@ -196,17 +200,23 @@ def upload_image():
 # now need to wire this in to plot example baseline
 @app.route('/plot_med', methods = ['POST'])
 def plot_med():
-        filename = "test.png" # hard code for testing
-        with open(filename, 'rb') as image:
-                img_str = base64.b64encode(image.read())
-        return {'image': img_str}
+    data_filename = request.form.get("filename")
+    material = request.form.get("material")
+    sb = request.form.get("sb")
+    sb_bool = True if sb == "True" else False
+    fm = find_material(data_filename, material, sb_bool)
+    _, img_str = get_example_matches(fm, confidence="medium", number_to_plot=2)
+    return {'image': img_str}
 
 @app.route('/plot_high', methods = ['POST'])
 def plot_high():
-        filename = "test.png" # hard code for testing
-        with open(filename, 'rb') as image:
-                img_str = base64.b64encode(image.read())
-        return {'image': img_str}
+    data_filename = request.form.get("filename")
+    material = request.form.get("material")
+    sb = request.form.get("sb")
+    sb_bool = True if sb == "True" else False
+    fm = find_material(data_filename, material, sb_bool)
+    _, img_str = get_example_matches(fm, confidence="high", number_to_plot=2)
+    return {'image': img_str}
 
 
 @app.route('/download_image', methods=['GET', 'POST'])
