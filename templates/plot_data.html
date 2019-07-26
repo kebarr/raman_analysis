@@ -16,20 +16,20 @@
             {% endif %}
             <div>
                 Examples of randomly selected matches (medium confidence):
-                    <img src="data:image/png;base64,{{match_example}}"  class="responsive"/>
+                    <img id="spectra" src="data:image/png;base64,{{match_example}}"  class="responsive"/>
             </div>
             <div class="row fileupload-buttonbar">
                     <div class="col-lg-7">
-                            <form id="plot_med" method="post" enctype="multipart/form-data">
-                            <button type="submit" class="btn btn-primary start" id="med-conf">
+                            <form id="plot_med"  method="post" enctype="multipart/form-data">
+                            <button type="button" class="btn btn-primary start" id="med-conf">
                                     <span>Plot different medium confidence spectra</span>
                                 </button>
                             <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
                             <input id="material" type="hidden" name="material" value = {{material}} >
                             <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
                             </form>
-                            <form id="plot_high" method="post" enctype="multipart/form-data"></form>
-                            <button type="submit" class="btn btn-primary start" id="high-conf">
+                            <form id="plot_high" method="post" enctype="multipart/form-data">
+                            <button type="button" class="btn btn-primary start" id="high-conf">
                                 <span>Plot different high confidence spectra</span>
                             </button>
                             <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
@@ -133,15 +133,18 @@
         // should be simpler cos no form data
                     $('#med-conf').click(function() {
                         console.log("clicked plot med");
+                        var form_data = new FormData($('#plot_med')[0]);
                         $.ajax({
                         type: 'POST',
                         url: '/plot_med',
                         contentType: false,
                         cache: false,
                         processData: false,
+                        data: form_data,
                         success: function(data) {
+                        console.log('in function')
                         var img = document.getElementById("spectra")
-                        img.src = "data:image/png;base64,"+data.image
+                        img.src = "data:image/png;base64,"+data.img_str
                     console.log('Success!');
                 },
             });
@@ -150,15 +153,18 @@
     $(function() {
                     $('#high-conf').click(function() {
                         console.log("clicked plot high");
+                        var form_data = new FormData($('#plot_high')[0]);
                         $.ajax({
                         type: 'POST',
                         url: '/plot_high',
                         contentType: false,
                         cache: false,
                         processData: false,
+                        data: form_data,
                         success: function(data) {
+                        console.log('in function')
                         var img = document.getElementById("spectra")
-                        img.src = "data:image/png;base64,"+data.image
+                        img.src = "data:image/png;base64,"+data.img_str
                     console.log('Success!');
                 },
             });

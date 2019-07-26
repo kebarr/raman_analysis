@@ -204,8 +204,12 @@ def plot_med():
     material = request.form.get("material")
     sb = request.form.get("sb")
     sb_bool = True if sb == "True" else False
+    print(data_filename, material, sb)
     fm = find_material(data_filename, material, sb_bool)
+    print("found material")
     _, img_str = get_example_matches(fm, confidence="medium", number_to_plot=2)
+    print("got example matches")
+    # actually_do_the_stuff is called.... whyu!?!?!?!?!?
     return {'image': img_str}
 
 @app.route('/plot_high', methods = ['POST'])
@@ -215,7 +219,9 @@ def plot_high():
     sb = request.form.get("sb")
     sb_bool = True if sb == "True" else False
     fm = find_material(data_filename, material, sb_bool)
+    print("found material")
     _, img_str = get_example_matches(fm, confidence="high", number_to_plot=2)
+    print("got example matches")
     return {'image': img_str}
 
 
@@ -230,6 +236,7 @@ def download_image():
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
+    print("called")
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
     subtract_baseline = True if option == 'with' else False
