@@ -19,9 +19,9 @@ from match_support_classes import Matches, MatchImage
 def read_template(name):
         filename = name + '.csv'
         with open(filename, 'r') as f:
-            writer = csv.reader(f)
+            reader = csv.reader(f)
             t = []
-            for row in writer:
+            for row in reader:
                 for item in row:
                    t.append(float(item))
         return t
@@ -107,7 +107,6 @@ class FindMaterial(object):
         #print(self.wavelengths)
         cond = ((self.wavelengths > lower_bound_1) & (self.wavelengths < upper_bound_1)) | ((self.wavelengths > lower_bound_2) & (self.wavelengths < upper_bound_2))
         self.peak_indices = np.where(cond)
-        print(self.peak_indices)
         if len(self.peak_indices) == 0:
             raise ValueError("Wavelengths of data set do not include expected peak wavelengths")
         # to rule out possibility of getting other d peak and weird stuff at beginning,

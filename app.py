@@ -26,15 +26,14 @@ from flask_bootstrap import Bootstrap
 from lib.upload_file import uploadfile
 
 cwd = os.getcwd()
-UPLOAD_FOLDER = cwd + '/uploads'
+UPLOAD_FOLDER = cwd + '/uploads/'
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 SECRET_KEY = 'hard to guess string'
-UPLOAD_FOLDER = 'uploads/'
-THUMBNAIL_FOLDER = 'data/thumbnail/'
-
+TEMPLATES_FOLDER = cwd + '/matching_templates/'
+app.config['TEMPLATES_FOLDER'] = TEMPLATES_FOLDER
 
 ALLOWED_EXTENSIONS = set(['txt', 'csv'])
 IGNORED_FILES = set(['.gitignore'])
@@ -128,7 +127,11 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     fig.savefig(io, format='png')
     baseline_example = base64.encodestring(io.getvalue())
     number_matches, data = get_example_matches(fm, confidence, number_to_plot)
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
+    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name + '.csv')
+    print(template_name)
+    with open(template_name, 'rb') as image:
+        template = base64.b64encode(image.read())
+    return render_template('plot_data.html', number_matches=number_matches, template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
 
 
 
@@ -155,7 +158,11 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
 
 def plot_example_match(fm, confidence="medium"):
     number_matches, data = get_example_matches(fm, confidence, number_to_plot=2)
-    return render_template('plot_data.html', number_matches=number_matches, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
+    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name + '.csv')
+    print(template_name)
+    with open(template_name, 'rb') as image:
+        template = base64.b64encode(image.read())
+    return render_template('plot_data.html', number_matches=number_matches, template = template, best_match = template, number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():

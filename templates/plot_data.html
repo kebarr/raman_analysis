@@ -20,15 +20,28 @@
             </div>
             <div class="row fileupload-buttonbar">
                     <div class="col-lg-7">
+                            <form id="plot_med" method="post" enctype="multipart/form-data">
                             <button type="submit" class="btn btn-primary start" id="med-conf">
                                     <span>Plot different medium confidence spectra</span>
                                 </button>
+                            <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
+                            <input id="material" type="hidden" name="material" value = {{material}} >
+                            <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
+                            </form>
+                            <form id="plot_high" method="post" enctype="multipart/form-data"></form>
                             <button type="submit" class="btn btn-primary start" id="high-conf">
                                 <span>Plot different high confidence spectra</span>
                             </button>
+                            <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
+                            <input id="material" type="hidden" name="material" value = {{material}} >
+                            <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
+                        </form>
                         </div>
 
                 </div>
+                <br>
+                Matched against following template: &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp  &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp Highest confidence match: <br>
+                <div style="float:left;"><img id="template" src="data:image/png;base64,{{template}}"  /> </div> <div style="float:left;"> </div><img id="template" src="data:image/png;base64,{{best_match}}"  /> </div><br>
         </blockquote>
         <blockquote>    
         <!-- Redirect browsers with JavaScript disabled to the origin page -->
@@ -44,9 +57,9 @@
                 <fieldset>
                     <button id="upload-file-btn" class="btn btn-primary start" type="button">Upload and plot locations</button>
                 </fieldset>
-                <input type="hidden" name="filename"  value = {{filename}} > 
-                <input type="hidden" name="material" value = {{material}} >
-                <input type="hidden" name="sb" value = {{subtract_baseline}}>
+                <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
+                <input id="material" type="hidden" name="material" value = {{material}} >
+                <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
             </form>
             <div id="for-image">
             </div>
@@ -113,6 +126,43 @@
             });
         });
     });
+
+    $(function() {
+        // should be simpler cos no form data
+                    $('#med-conf').click(function() {
+                        console.log("clicked plot med");
+                        $.ajax({
+                        type: 'POST',
+                        url: '/plot_med',
+                        contentType: false,
+                        cache: false,
+                        processData: false,
+                        success: function(data) {
+                        var img = document.getElementById("spectra")
+                        img.src = "data:image/png;base64,"+data.image
+                    console.log('Success!');
+                },
+            });
+        });
+    });
+    $(function() {
+                    $('#high-conf').click(function() {
+                        console.log("clicked plot high");
+                        $.ajax({
+                        type: 'POST',
+                        url: '/plot_high',
+                        contentType: false,
+                        cache: false,
+                        processData: false,
+                        success: function(data) {
+                        var img = document.getElementById("spectra")
+                        img.src = "data:image/png;base64,"+data.image
+                    console.log('Success!');
+                },
+            });
+        });
+    });
+
               </script>
 <!-- The XDomainRequest Transport is included for cross-domain file deletion for IE 8 and IE 9 -->
 <!--[if (gte IE 8)&(lt IE 10)]>
