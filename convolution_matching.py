@@ -213,7 +213,7 @@ class FindMaterial(object):
         else:
             matches = self.matches.matches
         # matches is (match_index, confidence score)
-        for match, confidence, _ in matches:
+        for match, confidence, _, _ in matches:
             mi.add_value_to_image(match, confidence)
         mi.save_image(output_filename)
         

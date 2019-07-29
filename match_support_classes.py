@@ -48,16 +48,16 @@ class MatchImage(object):
         else:
             y = i%(x*self.len_y)
         # scale it manually to increase contrast
-        if con > 80:
+        if con > 70:
             contrast = 100
-        elif con > 70:
-            contrast = 50
         elif con > 60:
-            contrast = 30 # previousl 50
-        elif con > 50:
-            contrast = 10 # 30
+            contrast = 80
+        elif con > 45:
+            contrast = 65 
+        elif con > 30:
+            contrast = 40
         else:
-            contrast = 5 # 10
+            contrast = 10 
         # just override previous value in image
         self.im_array[x+2, y+1] = [255, 128, 0, np.uint8(con*0.01*255)]
 
