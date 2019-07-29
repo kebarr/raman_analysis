@@ -216,7 +216,6 @@ class FindMaterial(object):
         return (x, y)
 
     def get_condifence_matches(self, thresh='medium'):
-        print(thresh)
         if thresh=='medium':
             return [self.matches.matches[match] for match in self.matches.med_confidence]
         elif thresh=='high':

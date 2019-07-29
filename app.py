@@ -100,7 +100,6 @@ def upload():
 
                 # return json for js call back
                 result = uploadfile(name=filename, type=mime_type, size=size)
-                print(result)
                 return render_template('file_uploaded.html', filename=filename)
 
 
@@ -110,7 +109,6 @@ def upload():
 # added 'maxmemory 10GB' to redis.conf # in top says 15M
 @cache.memoize(timeout=60*60)
 def find_material(filename, material, subtract_baseline):
-    print(filename, material, subtract_baseline)
     fm=  FindMaterial(filename, material, subtract_baseline)
     return fm
 
@@ -131,7 +129,6 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
     template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name)
-    print(template_name)
     with open(template_name, 'rb') as image:
         template = base64.b64encode(image.read())
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
@@ -139,9 +136,10 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
 
 
 def get_example_matches(fm, confidence="medium", number_to_plot=2):
-    print(confidence)
     matches = fm.get_condifence_matches(confidence)
     number_matches = len(matches)
+    if number_matches == 0:
+        return 0, 0, None, None
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
     match1 = matches[index_to_plot_1]
@@ -152,9 +150,6 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     cp2 = match2.conv_peaks
     c1 = match1.confidence
     c2 = match2.confidence
-    print("confidence 1: %d, confidence 2: %d" % (c1, c2) )
-    print(cp1)
-    print(cp2)
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     #string = '%d matches found' % number_matches
     fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
@@ -174,7 +169,6 @@ def plot_example_match(fm):
     number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
-    print(match1.peak_data, match2.peak_data)
     template_data = fm.material.template
     fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
@@ -223,9 +217,7 @@ def plot_med():
     material = request.form.get("material")
     sb = request.form.get("sb")
     sb_bool = True if sb == "True" else False
-    print(data_filename, material, sb)
     fm = find_material(data_filename, material, sb_bool)
-    print("found material")
     _, img_str, match1, match2 = get_example_matches(fm, confidence="medium", number_to_plot=2)
     print("got example matches")
     # actually_do_the_stuff is called.... whyu!?!?!?!?!?
@@ -241,7 +233,6 @@ def plot_high():
     sb = request.form.get("sb")
     sb_bool = True if sb == "True" else False
     fm = find_material(data_filename, material, sb_bool)
-    print("found material")
     _, img_str, match1, match2 = get_example_matches(fm, confidence="high", number_to_plot=2)
     print("got example matches")
     return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \

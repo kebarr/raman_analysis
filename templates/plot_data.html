@@ -5,9 +5,10 @@
 <div>
     <h2> Results </h2>
     <!-- TODO: test with baseline!! -->
-
+    {% if number_matches_med %}
     <blockquote>
-        Found {{all_matches}} locations out of {{number_locations}} positive for {{material}}, {{number_matches_med}} with medium confidence, {{number_matches_high}} with high confidence.
+        
+        Found {{all_matches}} locations out of {{number_locations}} potentially positive for {{material}}, {{number_matches_med}} with medium confidence, {{number_matches_high}} with high confidence.
         <!-- TODO: include confidence values!!!! -->
             {% if baseline_example is defined %}
             <div>
@@ -125,6 +126,11 @@
                     </form>
             </div>
         </blockquote>
+
+        {% else %}
+        <blockquote> No matches found </blockquote>
+
+        {% endif %} 
 </div>
 
 {% endblock %}
