@@ -125,23 +125,35 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     ax.set(ylabel='Intensity')
     io = StringIO()
     fig.savefig(io, format='png')
+    plt.close(fig)
     baseline_example = base64.encodestring(io.getvalue())
-    number_matches, data = get_example_matches(fm, confidence, number_to_plot)
+    number_matches_med, data = get_example_matches(fm, "medium", number_to_plot=2)
+    number_matches_high = len(fm.matches.high_confidence)
+    all_matches = len(fm.matches.matches)
     template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name)
     print(template_name)
     with open(template_name, 'rb') as image:
         template = base64.b64encode(image.read())
-    return render_template('plot_data.html', number_matches=number_matches, template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
+    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
 
 
 
 def get_example_matches(fm, confidence="medium", number_to_plot=2):
+    print(confidence)
     matches = fm.get_condifence_matches(confidence)
     number_matches = len(matches)
+    print(len(matches[0]), len(matches))
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
-    m1 = fm.matches.matches[index_to_plot_1][2]
-    m2 = fm.matches.matches[index_to_plot_2][2]
+    m1 = matches[index_to_plot_1][2]
+    m2 = matches[index_to_plot_2][2]
+    cp1 = matches[index_to_plot_1][3]
+    cp2 = matches[index_to_plot_2][3]
+    c1 = matches[index_to_plot_1][1]
+    c2 = matches[index_to_plot_2][1]
+    print("confidence 1: %d, confidence 2: %d" % (c1, c2) )
+    print(cp1)
+    print(cp2)
     ymax = np.max([np.max(m1.values), np.max(m2.values)]) + 50
     #string = '%d matches found' % number_matches
     fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
@@ -154,10 +166,13 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     m2.plot(ax=ax2)
     io = StringIO()
     fig.savefig(io, format='png')
+    plt.close(fig)
     return number_matches, base64.encodestring(io.getvalue())
 
-def plot_example_match(fm, confidence="medium"):
-    number_matches, data = get_example_matches(fm, confidence, number_to_plot=2)
+def plot_example_match(fm):
+    number_matches_med, data = get_example_matches(fm, "medium", number_to_plot=2)
+    number_matches_high = len(fm.matches.high_confidence)
+    all_matches = len(fm.matches.matches)
     template_data = fm.material.template
     fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
@@ -165,8 +180,11 @@ def plot_example_match(fm, confidence="medium"):
     ax1.plot(template_data)
     io = StringIO()
     fig.savefig(io, format='png')
+    plt.close(fig)
     template = base64.encodestring(io.getvalue())
-    return render_template('plot_data.html', number_matches=number_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", confidence=confidence, subtract_baseline=False)
+    if number_matches_med == 0:
+        return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
+    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False)
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
@@ -290,3 +308,4 @@ if __name__ == '__main__':
 # is now: (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
 #         (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
 # theyt're exactly the same so pwhat is the issue!!!
+# id/ig ratio

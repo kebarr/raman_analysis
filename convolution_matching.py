@@ -143,20 +143,18 @@ class FindMaterial(object):
         peak_end = self.peak_indices[0][-1]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        mean_peaks = np.mean(data.iloc[index][peak_start:peak_end]) + 50
+        max_peaks = np.max(data.iloc[index][peak_start:peak_end]) + 50
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_non_peaks = np.std(np.concatenate([data.iloc[index][200:self.peak_indices[0][0]], data.iloc[index][self.peak_indices[0][-1]:]]))
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
-        if mean_peaks > mean_non_peaks+2*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
+        if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             # calculate how far beyond non peak mean as a confidence measure
-            if mean_peaks <= mean_non_peaks+2*stdev_non_peaks:
-                confidence = 0
-            elif mean_peaks < 5*mean_non_peaks:
-                scaling_factor = 100./(5*mean_non_peaks)
-                confidence = mean_peaks*scaling_factor
+            if max_peaks < (2000+mean_non_peaks):
+                confidence = (100.*max_peaks)/(2000+mean_non_peaks)
+                print("mean peaks %d mean non peaks %d confidence %d " % (max_peaks, mean_non_peaks, confidence))
             else:
                 confidence = 100
             return True, confidence
@@ -171,10 +169,10 @@ class FindMaterial(object):
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
             if len(conv_peaks[0]) == 0:
-                return False, 0
+                return False, 0, [0]
             elif len(conv_peaks[0]) > 0:
-                return True, con
-        return False, 0
+                return True, con, conv_peaks
+        return False, 0, [0]
 
     def find_matches(self, data):
         self.find_indices_of_peak_wavelengths()
@@ -184,15 +182,19 @@ class FindMaterial(object):
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-            match, con = self.is_match(data, i)
+            match, con, conv_peaks = self.is_match(data, i)
             if match == True:
-                self.matches.add_match(i, con, data.iloc[i])
+                print(i, " con: ", con, "max: ",  np.max(data.iloc[i]), " conv_peaks ", conv_peaks)
+                self.matches.add_match(i, con, data.iloc[i], conv_peaks)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_condifence_matches(self, thresh='medium'):
+        print(thresh)
         if thresh=='medium':
+            print("in_medium")
             return [self.matches.matches[match] for match in self.matches.med_confidence]
         elif thresh=='high':
+            print("in_high")
             return [self.matches.matches[match] for match in self.matches.high_confidence]
         
     def get_high_confidence_matches(self):

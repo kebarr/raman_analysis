@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 
 class Matches(object):
-    def __init__(self, filename, material_name, med_thresh=60, high_thresh=68):
+    def __init__(self, filename, material_name, med_thresh=35, high_thresh=65): 
         self.filename = filename
         self.material_name = material_name
         self.med_thresh = med_thresh
@@ -10,13 +10,17 @@ class Matches(object):
         self.matches = []
         self.high_confidence = []
         self.med_confidence = []
+        print(self.med_thresh, " med thresh")
+        print(self.high_thresh, " med thresh")
 
-    def add_match(self, index, confidence, spectrum):
-        self.matches.append((index, confidence, spectrum))
+    def add_match(self, index, confidence, spectrum, conv_peaks):
+        self.matches.append((index, confidence, spectrum, conv_peaks))
         if confidence > self.high_thresh:
+            print("above high thresh: ", confidence, " index ", index, " thresh ", self.high_thresh)
             self.high_confidence.append(len(self.matches) -1)
             self.med_confidence.append(len(self.matches) -1)    
         elif confidence > self.med_thresh:
+            print("above med thresh: ", confidence, " index ", index, " thresh ", self.med_thresh)
             self.med_confidence.append(len(self.matches) -1)
         
 
