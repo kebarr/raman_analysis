@@ -78,6 +78,27 @@
         <blockquote>    
             <br>
         </br>
+        <div class="row fileupload-buttonbar">
+                <div class="col-lg-7">
+                        <form id="download_med"  action="//127.0.0.1:5000/download_med" method="post" enctype="multipart/form-data">
+                        <button type="submit" class="btn btn-primary start" id="med-conf-dl">
+                                <span>Download all medium confidence spectra data (includes high confidence)</span>
+                            </button>
+                        <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
+                        <input id="material" type="hidden" name="material" value = {{material}} >
+                        <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
+                        </form>
+                        <form id="download_high"  action="//127.0.0.1:5000/download_high"  method="post" enctype="multipart/form-data">
+                        <button type="submit" class="btn btn-primary start" id="high-conf-dl">
+                            <span>Download all high confidence spectra data </span>
+                        </button>
+                        <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
+                        <input id="material" type="hidden" name="material" value = {{material}} >
+                        <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
+                    </form>
+                    </div>
+
+            </div>
         <!-- Redirect browsers with JavaScript disabled to the origin page -->
             <noscript><input type="hidden" name="redirect" value="http://blueimp.github.io/jQuery-File-Upload/"></noscript>
             <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->

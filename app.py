@@ -5,7 +5,6 @@ import os
 from cStringIO import StringIO
 
 
-from flask import Flask, flash, request
 from werkzeug.utils import secure_filename
 from convolution_matching import FindMaterial
 from flask_caching import Cache
@@ -20,7 +19,7 @@ import scipy
 import simplejson
 import traceback
 
-from flask import Flask, request, render_template, redirect, url_for, send_from_directory
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory, send_file
 from flask_bootstrap import Bootstrap
 
 from lib.upload_file import uploadfile
@@ -249,6 +248,55 @@ def plot_high():
             'd_intensity2':match2.peak_data[0][1], 'g_intensity2': match2.peak_data[1][1], 'peak_ratio2': match2.peak_ratio,\
                 'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
 
+@app.route('/download_high', methods = ['POST'])
+def download_high():
+    data_filename = request.form.get("filename")
+    material = request.form.get("material")
+    sb = request.form.get("sb")
+    sb_bool = True if sb == "True" else False
+    fm = find_material(data_filename, material, sb_bool)
+    # output two files: one with a different spectrum on each row
+    # going to be a faff, just do csv with spectrum at end
+    with open('high_conf.csv', 'w') as f:
+        header = 'x, y, d intensity, g intensity, d/g, confidence, shifts \n'
+        f.write(header)
+        for match in fm.matches.matches:
+            spectrum_string = ''
+            for i in match.spectrum:
+                spectrum_string += str(i) + ', '
+            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
+            f.write(line)
+        wavelengths = ', , , , '
+        for w in fm.wavelengths:
+            wavelengths += ',' + str(w) 
+        f.write(wavelengths)
+    return send_file('high_conf.csv', as_attachment=True)
+
+@app.route('/download_med', methods = ['POST'])
+def download_med():
+    data_filename = request.form.get("filename")
+    material = request.form.get("material")
+    sb = request.form.get("sb")
+    sb_bool = True if sb == "True" else False
+    fm = find_material(data_filename, material, sb_bool)
+    # output two files: one with a different spectrum on each row
+    # going to be a faff, just do csv with spectrum at end
+    with open('med_conf.csv', 'w') as f:
+        header = 'x, y, d intensity, g intensity, d/g, confidence, shifts \n'
+        f.write(header)
+        for match in fm.matches.matches:
+            spectrum_string = ''
+            for i in match.spectrum:
+                spectrum_string += str(i) + ', '
+            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
+            f.write(line)
+        wavelengths = ', , , , '
+        for w in fm.wavelengths:
+            wavelengths += ',' + str(w) 
+        f.write(wavelengths)
+    return send_file('med_conf.csv', as_attachment=True)
+
+
 @app.route('/download_image', methods=['GET', 'POST'])
 def download_image():
     filename = request.form['output_filename']
@@ -260,7 +308,6 @@ def download_image():
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
-    print("called")
     option = request.form['baseline']
     filename = UPLOAD_FOLDER + request.form['filename']
     subtract_baseline = True if option == 'with' else False
