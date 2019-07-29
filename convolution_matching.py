@@ -11,6 +11,7 @@ from scipy import optimize, signal
 import scipy
 from sklearn import preprocessing
 import collections
+import cPickle
 
 from PIL import Image
 from match_support_classes import Matches, MatchImage
@@ -52,12 +53,17 @@ def baseline_als(y, lam=10**6, p=0.01, niter=10):
 class FindMaterial(object):
     def __init__(self, filename, material_name, subtract_baseline=False):
         self.data_filename = filename
+        self.pickle_filename = filename.split(".")[0] + ".pickle"
         self.subtract_baseline = subtract_baseline
         self.material_name = material_name
         self.material = materials[self.material_name]
         self.matches = Matches(filename, material_name)
-        data = self.load_data()
-        self.find_matches(data)
+        if os.path.exists(self.pickle_filename):
+            self.load()
+        else:
+            data = self.load_data()
+            self.find_matches(data)
+            self.write_to_file()
 
     def subtract_baseline_data(self, data):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
@@ -73,7 +79,18 @@ class FindMaterial(object):
         data.to_csv(baseline_filename, sep='\t')
         return data
 
+    def load(self):
+        print("loading from pickle")
+        f = open(self.pickle_filename, 'rb')
+        tmp_dict = cPickle.load(f)
+        f.close()          
+        self.__dict__.update(tmp_dict)
 
+
+    def write_to_file(self):
+        f = open(self.pickle_filename, 'wb')
+        cPickle.dump(self.__dict__, f, 2)
+        f.close()
 
     def load_data(self):
         # td.columns is the raman wavelength
@@ -156,7 +173,6 @@ class FindMaterial(object):
             # calculate how far beyond non peak mean as a confidence measure
             if max_peaks < (2000+mean_non_peaks):
                 confidence = (100.*max_peaks)/(2000+mean_non_peaks)
-                print("mean peaks %d mean non peaks %d confidence %d " % (max_peaks, mean_non_peaks, confidence))
             else:
                 confidence = 100
             return True, confidence, peak_data
@@ -171,7 +187,7 @@ class FindMaterial(object):
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
             if len(conv_peaks[0]) == 0:
-                return False, 0, [0]
+                return False, 0, [0], [0]
             elif len(conv_peaks[0]) > 0:
                 return True, con, conv_peaks, peak_data
         return False, 0, [0], [0]
@@ -186,7 +202,6 @@ class FindMaterial(object):
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(data, i)
             if match == True:
-                print(i, " con: ", con, "max: ",  np.max(data.iloc[i]), " conv_peaks ", conv_peaks)
                 match_position = self.get_match_position(i)
                 self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, match_position)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
@@ -203,10 +218,8 @@ class FindMaterial(object):
     def get_condifence_matches(self, thresh='medium'):
         print(thresh)
         if thresh=='medium':
-            print("in_medium")
             return [self.matches.matches[match] for match in self.matches.med_confidence]
         elif thresh=='high':
-            print("in_high")
             return [self.matches.matches[match] for match in self.matches.high_confidence]
         
     def get_high_confidence_matches(self):
@@ -230,7 +243,6 @@ class FindMaterial(object):
         mi.save_image(output_filename)
 
     def get_peak_heights(self, mean_non_peaks, stdev_non_peaks, spectrum):
-        print("spectrum shape: ", spectrum.shape)
         results = []
         peaks = 0
         for peak in range(len(self.material.peaks)):
@@ -241,16 +253,12 @@ class FindMaterial(object):
         return results
 
     def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
-        print(spectrum.shape)
         # i need index of start of peak and index of end of peak
         # data has been scaled and we don't know by how much....
         cond = ((self.wavelengths > self.material.peaks[peak_ind][0]) & (self.wavelengths < self.material.peaks[peak_ind][1]))
         peak_indices = np.where(cond)
-        print(peak_indices)
         peak = spectrum[peak_indices[0][0]:peak_indices[0][-1]]
-        print(peak.shape)
         peak_max = np.max(peak)
-        print("peak max: ", peak_max)
         peak_present = False
         if peak_max > mean_non_peaks+5*stdev_non_peaks:
             peak_present = True

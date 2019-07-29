@@ -29,7 +29,7 @@ class Match(object):
         return {'confidence': self.confidence, 'spectrum': self.spectrum, 'x' : self.x, 'y': self.y, 'peak_ratio':self.peak_ratio, 'peak_data': self.peak_data}
 
 class Matches(object):
-    def __init__(self, filename, material, med_thresh=35, high_thresh=50): 
+    def __init__(self, filename, material, med_thresh=31, high_thresh=50): 
         self.filename = filename
         self.material = material
         self.med_thresh = med_thresh
@@ -53,8 +53,6 @@ class MatchImage(object):
     def __init__(self, x, y):
         self.len_x = x
         self.len_y = y
-        print(x, y)
-
     def add_image(self, image_filename):
         # in Andy's code, it looks like he just resizes to make both the same dimensions!!
         im = Image.open(image_filename)
@@ -62,7 +60,7 @@ class MatchImage(object):
         #resize image leaves slight border around the outside, so increase dimensions so actual image dimensions match
         self.im = im.resize((self.len_x+4, self.len_y+4))
         self.im_array = np.array(self.im)
-        print(self.im_array.shape)
+
 
     def add_value_to_image(self, match):
         con = match.confidence

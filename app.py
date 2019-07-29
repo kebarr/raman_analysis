@@ -70,6 +70,7 @@ def gen_file_name(filename):
     return filename
 
 
+# add thing to not recompute if its one we've already done....
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -266,7 +267,7 @@ def download_high():
                 spectrum_string += str(i) + ', '
             line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
             f.write(line)
-        wavelengths = ', , , , '
+        wavelengths = ', , , , , '
         for w in fm.wavelengths:
             wavelengths += ',' + str(w) 
         f.write(wavelengths)
@@ -288,7 +289,7 @@ def download_med():
             spectrum_string = ''
             for i in match.spectrum:
                 spectrum_string += str(i) + ', '
-            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
+            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.peak_ratio)+ ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
             f.write(line)
         wavelengths = ', , , , '
         for w in fm.wavelengths:
