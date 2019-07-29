@@ -100,11 +100,10 @@ class FindMaterial(object):
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
-        self.lower_bound_1 = self.material.peaks[0][0]
-        self.upper_bound_1 = self.material.peaks[0][1]
-        self.lower_bound_2 = self.material.peaks[1][0]
-        self.upper_bound_2 = self.material.peaks[1][1]
-        #print(self.wavelengths)
+        lower_bound_1 = self.material.peaks[0][0]
+        upper_bound_1 = self.material.peaks[0][1]
+        lower_bound_2 = self.material.peaks[1][0]
+        upper_bound_2 = self.material.peaks[1][1]
         cond = ((self.wavelengths > lower_bound_1) & (self.wavelengths < upper_bound_1)) | ((self.wavelengths > lower_bound_2) & (self.wavelengths < upper_bound_2))
         self.peak_indices = np.where(cond)
         if len(self.peak_indices) == 0:
@@ -243,9 +242,12 @@ class FindMaterial(object):
 
     def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
         print(spectrum.shape)
-        peak_bounds = self.material.peaks[peak_ind]
-        print(peak_bounds)
-        peak = spectrum[peak_bounds[0]:peak_bounds[1]]
+        # i need index of start of peak and index of end of peak
+        # data has been scaled and we don't know by how much....
+        cond = ((self.wavelengths > self.material.peaks[peak_ind][0]) & (self.wavelengths < self.material.peaks[peak_ind][1]))
+        peak_indices = np.where(cond)
+        print(peak_indices)
+        peak = spectrum[peak_indices[0][0]:peak_indices[0][-1]]
         print(peak.shape)
         peak_max = np.max(peak)
         print("peak max: ", peak_max)

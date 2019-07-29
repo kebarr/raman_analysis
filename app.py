@@ -230,8 +230,8 @@ def plot_med():
     print("got example matches")
     # actually_do_the_stuff is called.... whyu!?!?!?!?!?
     return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
-        'd_intensity1':match1.peaks[0][1], 'g_intensity1': match1.peaks[1][1], 'peak_ratio1': match1.peak_ratio, \
-            'd_intensity2':match2.peaks[0][1], 'g_intensity2': match2.peaks[1][1], 'peak_ratio2': match2.peak_ratio,\
+        'd_intensity1':match1.peak_data[0][1], 'g_intensity1': match1.peak_data[1][1], 'peak_ratio1': match1.peak_ratio, \
+            'd_intensity2':match2.peak_data[0][1], 'g_intensity2': match2.peak_data[1][1], 'peak_ratio2': match2.peak_ratio,\
                 'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
 
 @app.route('/plot_high', methods = ['POST'])
