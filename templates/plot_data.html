@@ -172,10 +172,17 @@
                         processData: false,
                         data: form_data,
                         success: function(data) {
-                        console.log('in function')
-                        console.log(data)
-                        console.log('blahblahblah')
                         $("#spectra").attr('src', "data:image/png;base64,"+data.image)
+                        $("#match1_d_peak").html('<td id="match1_d_peak">' + data.d_intensity1 + '</td>')                        
+                        $("#match2_d_peak").html('<td id="match2_d_peak">' + data.d_intensity2 + '</td>')
+                        $("#match1_g_peak").html('<td id="match1_g_peak">' + data.g_intensity1 + '</td>')                        
+                        $("#match2_g_peak").html('<td id="match2_g_peak">' + data.g_intensity2 + '</td>')
+                        $("#match1_location").html('<td id="match1_location"> (' + data.x1 + ','+ data.y1 +')</td>')
+                        $("#match1_confidence").html('<td id="match1_confidence">' + data.match1_confidence + '</td>')                        
+                        $("#match1_peak_ratio").html('<td id="match1_peak_ratio">' + data.peak_ratio1 + '</td>')
+                        $("#match2_location").html('<td id="match2_location"> (' + data.x2  + ', '+ data.y2 +')</td>')
+                        $("#match2_confidence").html('<td id="match2_confidence">' + data.match2_confidence + '</td>')                        
+                        $("#match2_peak_ratio").html('<td id="match2_peak_ratio">' + data.peak_ratio2 + '</td>')
                     console.log('Success!');
                 },
             });
@@ -193,10 +200,17 @@
                         processData: false,
                         data: form_data,
                         success: function(data) {
-                        console.log('in function')
-                        console.log(data)
-                        console.log('blahblahblah')
                         $("#spectra").attr('src', "data:image/png;base64,"+data.image)
+                        $("#match1_d_peak").html('<td id="match1_d_peak">' + data.d_intensity1 + '</td>')                        
+                        $("#match2_d_peak").html('<td id="match2_d_peak">' + data.d_intensity2 + '</td>')
+                        $("#match1_g_peak").html('<td id="match1_g_peak">' + data.g_intensity1 + '</td>')                        
+                        $("#match2_g_peak").html('<td id="match2_g_peak">' + data.g_intensity2 + '</td>')
+                        $("#match1_location").html('<td id="match1_location"> (' + data.x1 + ','+ data.y1 +')</td>')
+                        $("#match1_confidence").html('<td id="match1_confidence">' + data.match1_confidence + '</td>')                        
+                        $("#match1_peak_ratio").html('<td id="match1_peak_ratio">' + data.peak_ratio1 + '</td>')
+                        $("#match2_location").html('<td id="match2_location"> (' + data.x2  + ', '+ data.y2 +')</td>')
+                        $("#match2_confidence").html('<td id="match2_confidence">' + data.match2_confidence + '</td>')                        
+                        $("#match2_peak_ratio").html('<td id="match2_peak_ratio">' + data.peak_ratio2 + '</td>')
                     console.log('Success!');
                 },
             });
