@@ -39,6 +39,38 @@
                         </div>
 
                 </div>
+                <table style="width:100%">
+                        <tr>
+                            <th></th>
+                          <th>Left match details</th>
+                          <th>Right match details</th> 
+                        </tr>
+                        <tr>
+                                <td>Location </td>
+                                <td id="match1_location">({{match1.x}}, {{match1.y}})</td> 
+                                <td id="match2_location">({{match2.x}}, {{match2.y}})</td> 
+                        </tr>
+                        <tr>
+                          <td>Confidence score</td>
+                          <td id="match1_confidence">{{match1.confidence}}</td> 
+                          <td id="match2_confidence">{{match2.confidence}}</td> 
+                        </tr>
+                        <tr>
+                                <td>D/G peak ratio </td>
+                                <td id="match1_peak_ratio">{{match1.peak_ratio}}</td> 
+                                <td id="match2_peak_ratio">{{match2.peak_ratio}}</td> 
+                        </tr>
+                        <tr>
+                                <td>G peak intensity </td>
+                                <td id="match1_g_peak">{{match1.peak_data[0][1]}}</td> 
+                                <td id="match2_g_peak">{{match2.peak_data[0][1]}}</td> 
+                        </tr>
+                        <tr>
+                                <td>D peak intensity </td>
+                                <td id="match1_d_peak">{{match1.peak_data[1][1]}}</td> 
+                                <td id="match2_d_peak">{{match2.peak_data[1][1]}}</td> 
+                        </tr>
+                      </table>
                 <br>
                 Matched against following template:  <br>
                 <div><img id="template" src="data:image/png;base64,{{template}}"  /> </div> <br> </br>

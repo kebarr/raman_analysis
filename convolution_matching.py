@@ -100,10 +100,10 @@ class FindMaterial(object):
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
-        lower_bound_1 = self.material.peaks[0][0]
-        upper_bound_1 = self.material.peaks[0][1]
-        lower_bound_2 = self.material.peaks[1][0]
-        upper_bound_2 = self.material.peaks[1][1]
+        self.lower_bound_1 = self.material.peaks[0][0]
+        self.upper_bound_1 = self.material.peaks[0][1]
+        self.lower_bound_2 = self.material.peaks[1][0]
+        self.upper_bound_2 = self.material.peaks[1][1]
         #print(self.wavelengths)
         cond = ((self.wavelengths > lower_bound_1) & (self.wavelengths < upper_bound_1)) | ((self.wavelengths > lower_bound_2) & (self.wavelengths < upper_bound_2))
         self.peak_indices = np.where(cond)
@@ -141,28 +141,31 @@ class FindMaterial(object):
     def check_match(self, data, index):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
+        spectrum = data.iloc[index]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        max_peaks = np.max(data.iloc[index][peak_start:peak_end]) + 50
+        max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
         # cut off first bit cos there's some weirdness in Cyrills data.
-        mean_non_peaks = (np.mean(data.iloc[index][200:self.peak_indices[0][0]]) + np.mean(data.iloc[index][self.peak_indices[0][-1]:]))*0.5 + 50
-        stdev_non_peaks = np.std(np.concatenate([data.iloc[index][200:self.peak_indices[0][0]], data.iloc[index][self.peak_indices[0][-1]:]]))
+        mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
+        stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
         if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
+            print(spectrum.shape)
+            peak_data = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
             # calculate how far beyond non peak mean as a confidence measure
             if max_peaks < (2000+mean_non_peaks):
                 confidence = (100.*max_peaks)/(2000+mean_non_peaks)
                 print("mean peaks %d mean non peaks %d confidence %d " % (max_peaks, mean_non_peaks, confidence))
             else:
                 confidence = 100
-            return True, confidence
+            return True, confidence, peak_data
         else:
-            return False, 0
+            return False, 0, [0]
 
     def is_match(self, data, index):
-        res, con = self.check_match(data, index)
+        res, con, peak_data = self.check_match(data, index)
         if res:
             to_match = self.prepare_data(data, index)
             template = self.material.template
@@ -171,8 +174,8 @@ class FindMaterial(object):
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0]
             elif len(conv_peaks[0]) > 0:
-                return True, con, conv_peaks
-        return False, 0, [0]
+                return True, con, conv_peaks, peak_data
+        return False, 0, [0], [0]
 
     def find_matches(self, data):
         self.find_indices_of_peak_wavelengths()
@@ -182,11 +185,21 @@ class FindMaterial(object):
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-            match, con, conv_peaks = self.is_match(data, i)
+            match, con, conv_peaks, peak_data = self.is_match(data, i)
             if match == True:
                 print(i, " con: ", con, "max: ",  np.max(data.iloc[i]), " conv_peaks ", conv_peaks)
-                self.matches.add_match(i, con, data.iloc[i], conv_peaks)
+                match_position = self.get_match_position(i)
+                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, match_position)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
+
+    def get_match_position(self, i):
+        x = int(i)/int(self.len_y)
+        if x == 0:
+            # avoid division by 0
+            y = i
+        else:
+            y = i%(x*self.len_y)
+        return (x, y)
 
     def get_condifence_matches(self, thresh='medium'):
         print(thresh)
@@ -213,7 +226,31 @@ class FindMaterial(object):
         else:
             matches = self.matches.matches
         # matches is (match_index, confidence score)
-        for match, confidence, _, _ in matches:
-            mi.add_value_to_image(match, confidence)
+        for match in matches:
+            mi.add_value_to_image(match )
         mi.save_image(output_filename)
-        
+
+    def get_peak_heights(self, mean_non_peaks, stdev_non_peaks, spectrum):
+        print("spectrum shape: ", spectrum.shape)
+        results = []
+        peaks = 0
+        for peak in range(len(self.material.peaks)):
+            peak_present, peak_max = self.peak_at_location(peak, mean_non_peaks, stdev_non_peaks, spectrum)
+            results.append((peak_present, peak_max))
+            if peak_present:
+                peaks += 1
+        return results
+
+    def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
+        print(spectrum.shape)
+        peak_bounds = self.material.peaks[peak_ind]
+        print(peak_bounds)
+        peak = spectrum[peak_bounds[0]:peak_bounds[1]]
+        print(peak.shape)
+        peak_max = np.max(peak)
+        print("peak max: ", peak_max)
+        peak_present = False
+        if peak_max > mean_non_peaks+5*stdev_non_peaks:
+            peak_present = True
+        return peak_present, peak_max
+

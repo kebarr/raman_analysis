@@ -142,15 +142,16 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     print(confidence)
     matches = fm.get_condifence_matches(confidence)
     number_matches = len(matches)
-    print(len(matches[0]), len(matches))
     index_to_plot_1 = np.random.randint(0, number_matches)
     index_to_plot_2 = np.random.randint(0, number_matches)
-    m1 = matches[index_to_plot_1][2]
-    m2 = matches[index_to_plot_2][2]
-    cp1 = matches[index_to_plot_1][3]
-    cp2 = matches[index_to_plot_2][3]
-    c1 = matches[index_to_plot_1][1]
-    c2 = matches[index_to_plot_2][1]
+    match1 = matches[index_to_plot_1]
+    match2 = matches[index_to_plot_2]
+    m1 = match1.spectrum
+    m2 = match2.spectrum
+    cp1 = match1.conv_peaks
+    cp2 = match2.conv_peaks
+    c1 = match1.confidence
+    c2 = match2.confidence
     print("confidence 1: %d, confidence 2: %d" % (c1, c2) )
     print(cp1)
     print(cp2)
@@ -167,12 +168,13 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     io = StringIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    return number_matches, base64.encodestring(io.getvalue())
+    return number_matches, base64.encodestring(io.getvalue()), match1, match2
 
 def plot_example_match(fm):
-    number_matches_med, data = get_example_matches(fm, "medium", number_to_plot=2)
+    number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
+    print(match1.peak_data, match2.peak_data)
     template_data = fm.material.template
     fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
@@ -184,7 +186,7 @@ def plot_example_match(fm):
     template = base64.encodestring(io.getvalue())
     if number_matches_med == 0:
         return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
-    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False)
+    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, match1 = match1.to_dict(), match2=match2.to_dict())
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
@@ -213,8 +215,7 @@ def upload_image():
                 return {'image': img_str, 'output_filename': output_filename}
 
 
-# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', False)
-# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', False)
+
 # now need to wire this in to plot example baseline
 @app.route('/plot_med', methods = ['POST'])
 def plot_med():
@@ -225,10 +226,13 @@ def plot_med():
     print(data_filename, material, sb)
     fm = find_material(data_filename, material, sb_bool)
     print("found material")
-    _, img_str = get_example_matches(fm, confidence="medium", number_to_plot=2)
+    _, img_str, match1, match2 = get_example_matches(fm, confidence="medium", number_to_plot=2)
     print("got example matches")
     # actually_do_the_stuff is called.... whyu!?!?!?!?!?
-    return {'image': img_str}
+    return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
+        'd_intensity1':match1.peaks[0][1], 'g_intensity1': match1.peaks[1][1], 'peak_ratio1': match1.peak_ratio, \
+            'd_intensity2':match2.peaks[0][1], 'g_intensity2': match2.peaks[1][1], 'peak_ratio2': match2.peak_ratio,\
+                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
 
 @app.route('/plot_high', methods = ['POST'])
 def plot_high():
@@ -238,10 +242,12 @@ def plot_high():
     sb_bool = True if sb == "True" else False
     fm = find_material(data_filename, material, sb_bool)
     print("found material")
-    _, img_str = get_example_matches(fm, confidence="high", number_to_plot=2)
+    _, img_str, match1, match2 = get_example_matches(fm, confidence="high", number_to_plot=2)
     print("got example matches")
-    return {'image': img_str}
-
+    return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
+        'd_intensity1':match1.peak_data[0][1], 'g_intensity1': match1.peak_data[1][1], 'peak_ratio1': match1.peak_ratio, \
+            'd_intensity2':match2.peak_data[0][1], 'g_intensity2': match2.peak_data[1][1], 'peak_ratio2': match2.peak_ratio,\
+                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
 
 @app.route('/download_image', methods=['GET', 'POST'])
 def download_image():
@@ -281,31 +287,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-# grep -rno 'jquery-file-upload.appspot.com' .
-#./index.html:15:jquery-file-upload.appspot.com
-#./templates/index.html:15:jquery-file-upload.appspot.com
-#./flask-file-uploader/static/js/main.js:37:jquery-file-upload.appspot.com
-#./flask-file-uploader/static/js/main.js:49:jquery-file-upload.appspot.com
-#./flask-file-uploader/static/js/app.js:19:jquery-file-upload.appspot.com
-#./flask-file-uploader/templates/index.html:15:jquery-file-upload.appspot.com
-
-#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./index.html
-#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./templates/index.html
-#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/static/js/main.js
-#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/static/js/app.js
-#sed -i -e 's,jquery-file-upload.appspot.com,flask-file-uploader/static/js/jQuery-File-Upload-9.32.0/,g' ./flask-file-uploader/templates/index.html
-#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/static/js/main.js
-#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/static/js/app.js
-#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./index.html
-#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g'./templates/index.html
-#sed -i -e 's,http://127.0.0.1:5000/flask-file-uploader,flask-file-uploader,g' ./flask-file-uploader/templates/index.html
-
-#sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' ./flask-file-uploader/static/js/main.js
-#sed -i -e 's,127.0.0.1:5000/flask-file-uploader,jquery-file-upload.appspot.com,g' 
-# (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', 'graphene_oxide', False)
-
-# first call: (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', 'graphene_oxide', u'False')
-# is now: (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
-#         (u'uploads/D_M1_Spleen_Slide3_2019_02_11_14_43_47.txt', u'graphene_oxide', u'False')
-# theyt're exactly the same so pwhat is the issue!!!
-# id/ig ratio
+# minimum to do!!
+# id/ig ratio - find max in g peak region and max in d peak region, not robust to cosmic rays but my baselining removes these.
+# show for shown match, confidence score, d/g ratio
+# user output - image of spectrum, of currently shown match (so need to separate somehow, as its bytecode!!) 
