@@ -41,10 +41,11 @@ Z = W + lam * D.dot(D.transpose())
 
 
 # function to baseline data 
-def baseline_als(y, lam=10**6, p=0.01, L=L, D=D, w=w, W=W, Z=Z):
+def baseline_als(y, lam=10**2, p=0.01, L=L, D=D, w=w, W=W, Z=Z):
     # https://stackoverflow.com/questions/29156532/python-baseline-correction-library
-    z = scipy.sparse.linalg.spsolve(Z, w*y)
-    w = p * (y > z) + (1-p) * (y < z)
+    for i in range(1): # 2 iterations is worse than 1, as is 3, 15 finds none!!!
+        z = scipy.sparse.linalg.spsolve(Z, w*y)
+        w = p * (y > z) + (1-p) * (y < z)
     return z
 
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
@@ -166,32 +167,22 @@ class FindMaterial(object):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
         spectrum = data.iloc[index]
-        print(spectrum.shape)
-        print(spectrum.head())
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
         max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
-        print(max_peaks)
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
-        print(mean_non_peaks)
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
-        print(stdev_non_peaks)
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
-            print("inconditional")
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
-            print("got peak heights")
-            print(peak_data, peaks)
             if peaks > 0:
-                print("in conditonal 2 ")
                 # calculate how far beyond non peak mean as a confidence measure
                 if max_peaks < (2000+mean_non_peaks):
                     confidence = (100.*max_peaks)/(2000+mean_non_peaks)
                 else:
                     confidence = 100
-                print(peak_data, peaks, confidence)
                 return True, confidence, peak_data
             return False, 0, [0]
         else:

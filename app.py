@@ -129,7 +129,7 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
     if number_matches_med == 0:
-        return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
+        return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
     template_data = fm.material.template
     fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
