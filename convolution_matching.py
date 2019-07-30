@@ -78,13 +78,10 @@ class FindMaterial(object):
         W = scipy.sparse.spdiags(w, 0, L, L)
         Z = W + lam * D.dot(D.transpose())
         print("subtracting baselines.... please wait!!!!!")
+        data_arr = np.array(data)
         for i in range(len(data)):
-            # painful but simple way is prohibitively slow
-            # something gone badly wrong with this, seems to hang forevr.....
-            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), np.array(data.iloc[i][2:] - baseline_als(data.iloc[i][2:], L=L, D=D, w=w, W=W, Z=Z))])
-            data.loc[i] = new
-            if i%1000 == 0:
-                print("subtracted %d of %d" % (i, len(data)))
+            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), data_arr[i][2:] - baseline_als(data_arr[i][2:])])
+            data.iloc[i] = new
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
         self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
         data.to_csv(baseline_filename, sep='\t')
@@ -114,6 +111,7 @@ class FindMaterial(object):
         #td.columns[index] is wavelength at position index
         if self.subtract_baseline == True:
            data = self.subtract_baseline_data(data)
+        print(data.head())
         # should be better way to do this, but i can't find it
         wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
         for i, col in enumerate(data.columns[2:]):
@@ -168,23 +166,34 @@ class FindMaterial(object):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
         spectrum = data.iloc[index]
+        print(spectrum.shape)
+        print(spectrum.head())
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
         max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
+        print(max_peaks)
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
+        print(mean_non_peaks)
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
+        print(stdev_non_peaks)
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
         if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
+            print("inconditional")
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
+            print("got peak heights")
+            print(peak_data, peaks)
             if peaks > 0:
+                print("in conditonal 2 ")
                 # calculate how far beyond non peak mean as a confidence measure
                 if max_peaks < (2000+mean_non_peaks):
                     confidence = (100.*max_peaks)/(2000+mean_non_peaks)
                 else:
                     confidence = 100
+                print(peak_data, peaks, confidence)
                 return True, confidence, peak_data
+            return False, 0, [0]
         else:
             return False, 0, [0]
 
