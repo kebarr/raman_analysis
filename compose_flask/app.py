@@ -23,6 +23,7 @@ from flask_bootstrap import Bootstrap
 
 from lib.upload_file import uploadfile
 
+# stting up docker... https://gist.github.com/PurpleBooth/635a35ed0cffb074014e https://runnable.com/docker/introduction-to-docker-compose
 cwd = os.getcwd()
 UPLOAD_FOLDER = cwd + '/uploads/'
 
@@ -324,7 +325,7 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
 
 
 # minimum to do!!
