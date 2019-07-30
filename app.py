@@ -125,13 +125,21 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     fig.savefig(io, format='png')
     plt.close(fig)
     baseline_example = base64.encodestring(io.getvalue())
-    number_matches_med, data = get_example_matches(fm, "medium", number_to_plot=2)
+    number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
-    template_name = os.path.join(app.config['TEMPLATES_FOLDER'] , fm.material.name)
-    with open(template_name, 'rb') as image:
-        template = base64.b64encode(image.read())
-    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True)
+    if number_matches_med == 0:
+        return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
+    template_data = fm.material.template
+    fig, (ax1) = plt.subplots(1,1, sharex=True, sharey=True, figsize=(13, 5))
+    ax1.set(xlabel = 'Shift (cm$^{-1}$)')
+    ax1.set(ylabel='Intensity')
+    ax1.plot(template_data)
+    io = StringIO()
+    fig.savefig(io, format='png')
+    plt.close(fig)
+    template = base64.encodestring(io.getvalue())
+    return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True, match1 = match1.to_dict(), match2=match2.to_dict())
 
 
 

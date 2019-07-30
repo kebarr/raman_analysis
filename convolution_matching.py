@@ -31,18 +31,20 @@ material = collections.namedtuple('material', 'name peaks template')
 graphene_oxide= material(name='graphene_oxide', peaks=[(1250, 1450), (1500, 1700)], template=read_template('matching_templates/graphene_oxide'))
 materials = {'graphene_oxide': graphene_oxide}
 
-# function to baseline data
-def baseline_als(y, lam=10**6, p=0.01, niter=10):
+
+lam=10**6
+L = 951
+D = scipy.sparse.csc_matrix(np.diff(np.eye(L), 2))
+w = np.ones(L)
+W = scipy.sparse.spdiags(w, 0, L, L)
+Z = W + lam * D.dot(D.transpose()) 
+
+
+# function to baseline data 
+def baseline_als(y, lam=10**6, p=0.01, L=L, D=D, w=w, W=W, Z=Z):
     # https://stackoverflow.com/questions/29156532/python-baseline-correction-library
-    # work out what this actuallly does
-    L = len(y)
-    D = scipy.sparse.csc_matrix(np.diff(np.eye(L), 2))
-    w = np.ones(L)
-    for i in xrange(niter):
-        W = scipy.sparse.spdiags(w, 0, L, L)
-        Z = W + lam * D.dot(D.transpose())
-        z = scipy.sparse.linalg.spsolve(Z, w*y)
-        w = p * (y > z) + (1-p) * (y < z)
+    z = scipy.sparse.linalg.spsolve(Z, w*y)
+    w = p * (y > z) + (1-p) * (y < z)
     return z
 
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
@@ -69,11 +71,20 @@ class FindMaterial(object):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
         index_to_compare = np.random.randint(0, len(data))
         self.random_sample_compare_before_subtract_baseline = copy.deepcopy(data.iloc[index_to_compare])
-        print("subtracting baselines.... please wait!")
+        lam=10**6
+        L = len(data.iloc[0]) -2 
+        D = scipy.sparse.csc_matrix(np.diff(np.eye(L), 2))
+        w = np.ones(L)
+        W = scipy.sparse.spdiags(w, 0, L, L)
+        Z = W + lam * D.dot(D.transpose())
+        print("subtracting baselines.... please wait!!!!!")
         for i in range(len(data)):
             # painful but simple way is prohibitively slow
-            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), np.array(data.iloc[i][2:] - baseline_als(data.iloc[i][2:]))])
+            # something gone badly wrong with this, seems to hang forevr.....
+            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), np.array(data.iloc[i][2:] - baseline_als(data.iloc[i][2:], L=L, D=D, w=w, W=W, Z=Z))])
             data.loc[i] = new
+            if i%1000 == 0:
+                print("subtracted %d of %d" % (i, len(data)))
         print("baseline subtracted, writing result to file: %s " % (baseline_filename))
         self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
         data.to_csv(baseline_filename, sep='\t')
@@ -137,7 +148,6 @@ class FindMaterial(object):
             self.highest_index = self.peak_indices[0][-1] +200
         else:
             self.highest_index = self.peak_indices[0][-1]
-        print(self.lowest_index, self.highest_index)
         # guess at reasonable max width
         self.max_width = self.highest_index - self.lowest_index
         print("max width: ", self.max_width)
@@ -166,16 +176,15 @@ class FindMaterial(object):
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
         # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
         # try basing off standard deviation near peaks
-        #print("mean peaks: ", mean_peaks, " mean non peaks: ", mean_non_peaks, " stdev non peaks ", stdev_non_peaks)
         if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
-            print(spectrum.shape)
-            peak_data = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
-            # calculate how far beyond non peak mean as a confidence measure
-            if max_peaks < (2000+mean_non_peaks):
-                confidence = (100.*max_peaks)/(2000+mean_non_peaks)
-            else:
-                confidence = 100
-            return True, confidence, peak_data
+            peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
+            if peaks > 0:
+                # calculate how far beyond non peak mean as a confidence measure
+                if max_peaks < (2000+mean_non_peaks):
+                    confidence = (100.*max_peaks)/(2000+mean_non_peaks)
+                else:
+                    confidence = 100
+                return True, confidence, peak_data
         else:
             return False, 0, [0]
 
@@ -249,7 +258,7 @@ class FindMaterial(object):
             results.append((peak_present, peak_max))
             if peak_present:
                 peaks += 1
-        return results
+        return results, peaks
 
     def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
         # i need index of start of peak and index of end of peak

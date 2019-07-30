@@ -39,12 +39,14 @@ class Matches(object):
         self.med_confidence = []
 
     def add_match(self, material, confidence, spectrum, conv_peaks, peak_data, location):
-        self.matches.append(Match(material, confidence, spectrum, conv_peaks, peak_data, location))
-        if confidence > self.high_thresh:
-            self.high_confidence.append(len(self.matches) -1)
-            self.med_confidence.append(len(self.matches) -1)    
-        elif confidence > self.med_thresh:
-            self.med_confidence.append(len(self.matches) -1)
+        match = Match(material, confidence, spectrum, conv_peaks, peak_data, location)
+        if match.peak_ratio > 0.9: # hack to avoid contaminant..... 
+            self.matches.append(match)
+            if confidence > self.high_thresh:
+                self.high_confidence.append(len(self.matches) -1)
+                self.med_confidence.append(len(self.matches) -1)    
+            elif confidence > self.med_thresh:
+                self.med_confidence.append(len(self.matches) -1)
 
     
         
@@ -53,6 +55,7 @@ class MatchImage(object):
     def __init__(self, x, y):
         self.len_x = x
         self.len_y = y
+        
     def add_image(self, image_filename):
         # in Andy's code, it looks like he just resizes to make both the same dimensions!!
         im = Image.open(image_filename)
