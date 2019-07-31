@@ -13,16 +13,6 @@
             {% if baseline_example is defined %}
             <div>
                     <img src="data:image/png;base64,{{baseline_example}}" class="responsive"/>
-                    <form id="download_baseline_subtracted"  action="//127.0.0.1:5000/download_baseline_subtracted"  method="post" enctype="multipart/form-data">
-                        <button type="submit" class="btn btn-primary start" id="high-conf-dl">
-                            <span>Download all baseline subtracted data </span>
-                        </button>
-                        <input id="filename" type="hidden" name="filename"  value = {{filename}} > 
-                        <input id="material" type="hidden" name="material" value = {{material}} >
-                        <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
-                    </form>
-
-                    NB- matches 
             </div>
             {% endif %}
             <div>

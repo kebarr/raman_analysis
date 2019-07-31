@@ -1,8 +1,8 @@
 import base64
 import datetime
 import io
+from io import BytesIO
 import os
-from cStringIO import StringIO
 
 
 from werkzeug.utils import secure_filename
@@ -23,6 +23,7 @@ from flask_bootstrap import Bootstrap
 
 from lib.upload_file import uploadfile
 
+# stting up docker... https://gist.github.com/PurpleBooth/635a35ed0cffb074014e https://runnable.com/docker/introduction-to-docker-compose
 cwd = os.getcwd()
 UPLOAD_FOLDER = cwd + '/uploads/'
 
@@ -41,8 +42,7 @@ bootstrap = Bootstrap(app)
 
 CACHE_CONFIG = {
     # try 'filesystem' if you don't want to setup redis
-    'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    'CACHE_TYPE': 'simple',
     'CACHE_DEFAULT_TIMEOUT': 60*60*3
 }
 cache = Cache()
@@ -120,10 +120,10 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     ax.set_title("Example with/without baseline subtraction")
     ax.set(xlabel = 'Shift (cm$^{-1}$)')
     ax.set(ylabel='Intensity')
-    io = StringIO()
+    io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    baseline_example = base64.encodestring(io.getvalue())
+    baseline_example = base64.encodebytes(io.getvalue())
     number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
@@ -134,10 +134,10 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
     ax1.set(ylabel='Intensity')
     ax1.plot(template_data)
-    io = StringIO()
+    io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    template = base64.encodestring(io.getvalue())
+    template = base64.encodebytes(io.getvalue())
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True, match1 = match1.to_dict(), match2=match2.to_dict())
 
 
@@ -163,10 +163,10 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     ax2.set(ylabel='Intensity')
     m1.plot(ax=ax1)
     m2.plot(ax=ax2)
-    io = StringIO()
+    io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    return number_matches, base64.encodestring(io.getvalue()), match1, match2
+    return number_matches, base64.encodebytes(io.getvalue()), match1, match2
 
 def plot_example_match(fm):
     number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
@@ -177,10 +177,10 @@ def plot_example_match(fm):
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
     ax1.set(ylabel='Intensity')
     ax1.plot(template_data)
-    io = StringIO()
+    io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    template = base64.encodestring(io.getvalue())
+    template = base64.encodebytes(io.getvalue())
     if number_matches_med == 0:
         return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, match1 = match1.to_dict(), match2=match2.to_dict())
