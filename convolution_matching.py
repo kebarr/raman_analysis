@@ -156,6 +156,7 @@ class FindMaterial(object):
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
         self.len_x = len(data.loc[data["x"] == data.x[0]])
         self.len_y = int(len(data)/float(self.len_x))
+        print(self.len_x, self.len_y)
         self.len = len(data)
         return data
 
@@ -249,7 +250,7 @@ class FindMaterial(object):
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_match_position(self, i):
-        x = int(i)/int(self.len_y)
+        x = i//self.len_y
         if x == 0:
             # avoid division by 0
             y = i

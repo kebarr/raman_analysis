@@ -66,6 +66,7 @@ class MatchImage(object):
 
 
     def add_value_to_image(self, match):
+        print(match.x, match.y)
         con = match.confidence
         # scale it manually to increase contrast
         if con > 70:
