@@ -122,8 +122,9 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     ax.set(ylabel='Intensity')
     io = BytesIO()
     fig.savefig(io, format='png')
-    plt.close(fig)
-    baseline_example = io.read().decode('UTF-8')
+    plt.close(fig)    
+    io.seek(0)
+    baseline_example = base64.encodestring(io.getvalue()).decode("utf-8")
     number_matches_med, data, match1, match2 = get_example_matches(fm, "medium", number_to_plot=2)
     number_matches_high = len(fm.matches.high_confidence)
     all_matches = len(fm.matches.matches)
@@ -137,7 +138,8 @@ def plot_random_baseline_example(fm, confidence="medium", number_to_plot=2):
     io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    template = io.read().decode('UTF-8')
+    io.seek(0)
+    template = base64.encodestring(io.getvalue()).decode("utf-8")
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches,template = template, best_match = template, number_locations=fm.len, match_example = data, baseline_example=baseline_example, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=True, match1 = match1.to_dict(), match2=match2.to_dict())
 
 
@@ -166,11 +168,7 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     io = BytesIO()
     fig.savefig(io, format='png')
     io.seek(0)
-    print(io)
-    print("...................................................................................")
-    #img_str = base64.b64encode(io)
-    img_str = base64.encodestring(io.getvalue())
-    print(img_str)
+    img_str = base64.encodestring(io.getvalue()).decode("utf-8")
     plt.close(fig)
     return number_matches, img_str, match1, match2
 
@@ -186,7 +184,8 @@ def plot_example_match(fm):
     io = BytesIO()
     fig.savefig(io, format='png')
     plt.close(fig)
-    template = io.read()
+    io.seek(0)
+    template = base64.encodestring(io.getvalue()).decode("utf-8")
     if number_matches_med == 0:
         return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, match1 = match1.to_dict(), match2=match2.to_dict())
