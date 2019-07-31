@@ -11,7 +11,7 @@ from scipy import optimize, signal
 import scipy
 from sklearn import preprocessing
 import collections
-import cPickle
+import pickle
 
 from scipy.linalg import solveh_banded
 from PIL import Image
@@ -126,14 +126,14 @@ class FindMaterial(object):
     def load(self):
         print("loading from pickle")
         f = open(self.pickle_filename, 'rb')
-        tmp_dict = cPickle.load(f)
+        tmp_dict = pickle.load(f)
         f.close()          
         self.__dict__.update(tmp_dict)
 
 
     def write_to_file(self):
         f = open(self.pickle_filename, 'wb')
-        cPickle.dump(self.__dict__, f, 2)
+        pickle.dump(self.__dict__, f, 2)
         f.close()
 
     def load_data(self):

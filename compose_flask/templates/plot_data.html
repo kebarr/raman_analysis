@@ -81,7 +81,7 @@
         </br>
         <div class="row fileupload-buttonbar">
                 <div class="col-lg-7">
-                        <form id="download_med"  action="//192.168.99.100:5000/download_med" method="post" enctype="multipart/form-data">
+                        <form id="download_med"  action="//127.0.0.1:5000/download_med" method="post" enctype="multipart/form-data">
                         <button type="submit" class="btn btn-primary start" id="med-conf-dl">
                                 <span>Download all medium confidence spectra data (includes high confidence)</span>
                             </button>
@@ -89,7 +89,7 @@
                         <input id="material" type="hidden" name="material" value = {{material}} >
                         <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
                         </form>
-                        <form id="download_high"  action="//192.168.99.100:5000/download_high"  method="post" enctype="multipart/form-data">
+                        <form id="download_high"  action="//127.0.0.1:5000/download_high"  method="post" enctype="multipart/form-data">
                         <button type="submit" class="btn btn-primary start" id="high-conf-dl">
                             <span>Download all high confidence spectra data </span>
                         </button>
@@ -120,7 +120,7 @@
             <div id="for-image">
             </div>
             <div id="for-button" style="display:none;"> 
-                    <form id="download_image"  action="//192.168.99.100:5000/download_image" method="post" enctype="multipart/form-data">
+                    <form id="download_image"  action="//127.0.0.1:5000/download_image" method="post" enctype="multipart/form-data">
                         <input type="hidden" id = "o" name="output_filename">
                         <button  id="download-image-btn" class="btn btn-primary start" type="submit">Download image of match positions</button>
                     </form>
