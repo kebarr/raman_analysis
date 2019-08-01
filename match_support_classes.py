@@ -52,37 +52,44 @@ class Matches(object):
         
 
 class MatchImage(object):
-    def __init__(self, x, y):
-        self.len_x = x
-        self.len_y = y
+    def __init__(self, x_0, y_0, x_max, y_max):
+        self.x_0 = x_0
+        self.y_0 = y_0
+        self.x_max = x_max
+        self.y_max = y_max
+        self.len_x = x_max - x_0
+        self.len_y = y_max - y_0
+        print("x0 %d, y0 %d, xmax %d ymax %d len x 0 %d len y 0 %d" % (x_0, y_0, x_max, y_max, self.len_x, self.len_y))
 
     def add_image(self, image_filename):
         # in Andy's code, it looks like he just resizes to make both the same dimensions!!
         im = Image.open(image_filename)
         im = im.convert("RGBA")
         #resize image leaves slight border around the outside, so increase dimensions so actual image dimensions match
-        self.im = im.resize((self.len_x+4, self.len_y+4))
-        self.im_array = np.array(self.im)
+        self.im_array = np.array(im)
+        print(self.im_array.shape, len(self.im_array[0][0]), len(self.im_array[0]), len(self.im_array))
+        # need to upsample data rather than resize image as otherwise it is unacceptably blurry
+        self.x_scale_factor = float(len(self.im_array))/(self.len_x+1)
+        self.y_scale_factor = float(len(self.im_array[0]))/(self.len_y+1)
+        print("x scale foctore: %f, y scale factor %f" % (self.x_scale_factor, self.y_scale_factor))
 
 
     def add_value_to_image(self, match):
-        if match.x < self.len_x and match.y < self.len_y:
-            con = match.confidence
-            # scale it manually to increase contrast
-            if con > 70:
-                contrast = 100
-            elif con > 60:
-                contrast = 80
-            elif con > 45:
-                contrast = 65 
-            elif con > 30:
-                contrast = 40
-            else:
-                contrast = 10 
-            # just override previous value in image
-            self.im_array[match.x, match.y] = [255, 128, 0, np.uint8(con*0.01*255)]
+        con = match.confidence
+        # scale it manually to increase contrast
+        if con > 70:
+            contrast = 100
+        elif con > 60:
+            contrast = 80
+        elif con > 45:
+            contrast = 65 
+        elif con > 30:
+            contrast = 40
         else:
-            print(match.x, match.y, match.con)
+            contrast = 10 
+        print(self.x_scale_factor*(match.x- self.x_0), self.y_scale_factor*(match.y-self.y_0))
+        # just override previous value in image
+        self.im_array[int(self.x_scale_factor*(match.x- self.x_0)), int(self.y_scale_factor*(match.y-self.y_0))] = [255, 128, 0, np.uint8(con*0.01*255)]
 
     # need to ask Andy about this
     def save_image(self, output_filename):

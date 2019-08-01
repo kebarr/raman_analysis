@@ -154,8 +154,11 @@ class FindMaterial(object):
         self.wavelengths = wavelengths
         print("successfully loaded data")
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
-        #self.len_x = len(data.loc[data["x"] == data.x[0]])
-        #self.len_y = int(len(data)/float(self.len_x))
+        self.len_x_0 = len(data.loc[data["x"] == data.x[0]])
+        self.x_0 = data.x[0]
+        self.y_0 = data.y[0]
+        self.x_max = data.x[len(data)-1]
+        self.y_max = data.y[len(data)-1]
         self.len = len(data)
         return data
 
@@ -247,17 +250,6 @@ class FindMaterial(object):
                 self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, data.iloc[i].x, data.iloc[i].y)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
-    # need to get array based on x and y that assumes nothing about shape
-    #have x and y coordinates - so just scale based on taking first x to 0 and first y to 0
-    def get_match_position(self, i):
-        x = i//self.len_y
-        if x == 0:
-            # avoid division by 0
-            y = i
-        else:
-            y = i%(x*self.len_y)
-        return (x, y)
-
     def get_condifence_matches(self, thresh='medium'):
         if thresh=='medium':
             return [self.matches.matches[match] for match in self.matches.med_confidence]
@@ -271,7 +263,7 @@ class FindMaterial(object):
         return self.get_condifence_matches()
 
     def overlay_match_positions(self, bitmap_filename, output_filename, confidence="medium"):
-        mi = MatchImage(self.len_x, self.len_y)
+        mi = MatchImage(self.x_0, self.y_0, self.x_max, self.y_max)
         mi.add_image(bitmap_filename)
         if confidence == "medium":
             matches = self.get_med_confidence_matches()
