@@ -80,13 +80,13 @@ class MatchImage(object):
         if con > 70:
             contrast = 100
         elif con > 60:
-            contrast = 30
+            contrast = 20
         elif con > 45:
-            contrast = 20 
+            contrast = 10 
         elif con > 30:
-            contrast = 10
+            contrast = 5
         else:
-            contrast = 5 
+            contrast = 1 
         # just override previous value in image
         self.im_array[int(self.x_scale_factor*(match.x- self.x_0)), int(self.y_scale_factor*(match.y-self.y_0))] = [57, 255, 20, np.uint8(con*0.01*255)]
         x_to_add = int(self.x_scale_factor+2)
