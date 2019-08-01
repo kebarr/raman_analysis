@@ -18,7 +18,7 @@ import scipy
 
 import traceback
 
-from flask import Flask, request, render_template, redirect, url_for, send_from_directory, send_file
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory, send_file, jsonify
 from flask_bootstrap import Bootstrap
 
 from lib.upload_file import uploadfile
@@ -213,8 +213,11 @@ def upload_image():
                 fm = find_material(data_filename, material, sb_bool)
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(output_filename, 'rb') as image:
-                    img_str = base64.b64encode(image.read())
-                return {'image': img_str, 'output_filename': output_filename}
+                    img_str = base64.b64encode(image.read()).decode("utf-8")
+                print(type(img_str))
+                print(img_str)
+                return jsonify({'image': img_str, 'output_filename': output_filename})
+
 
 
 
@@ -228,10 +231,10 @@ def plot_med():
     fm = find_material(data_filename, material, sb_bool)
     _, img_str, match1, match2 = get_example_matches(fm, confidence="medium", number_to_plot=2)
     # actually_do_the_stuff is called.... whyu!?!?!?!?!?
-    return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
+    return jsonify({'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
         'd_intensity1':match1.peak_data[0][1], 'g_intensity1': match1.peak_data[1][1], 'peak_ratio1': match1.peak_ratio, \
             'd_intensity2':match2.peak_data[0][1], 'g_intensity2': match2.peak_data[1][1], 'peak_ratio2': match2.peak_ratio,\
-                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
+                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y})
 
 @app.route('/plot_high', methods = ['POST'])
 def plot_high():
@@ -241,10 +244,10 @@ def plot_high():
     sb_bool = True if sb == "True" else False
     fm = find_material(data_filename, material, sb_bool)
     _, img_str, match1, match2 = get_example_matches(fm, confidence="high", number_to_plot=2)
-    return {'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
+    return jsonify({'image': img_str, 'match1_confidence': match1.confidence, 'match2_confidence': match2.confidence, \
         'd_intensity1':match1.peak_data[0][1], 'g_intensity1': match1.peak_data[1][1], 'peak_ratio1': match1.peak_ratio, \
             'd_intensity2':match2.peak_data[0][1], 'g_intensity2': match2.peak_data[1][1], 'peak_ratio2': match2.peak_ratio,\
-                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y}
+                'x1': match1.x, 'y1': match1.y, 'x2': match2.x, 'y2': match2.y})
 
 @app.route('/download_high', methods = ['POST'])
 def download_high():
