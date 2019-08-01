@@ -154,8 +154,8 @@ class FindMaterial(object):
         self.wavelengths = wavelengths
         print("successfully loaded data")
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
-        self.len_x = len(data.loc[data["x"] == data.x[0]])
-        self.len_y = int(len(data)/float(self.len_x))
+        #self.len_x = len(data.loc[data["x"] == data.x[0]])
+        #self.len_y = int(len(data)/float(self.len_x))
         self.len = len(data)
         return data
 
@@ -244,10 +244,11 @@ class FindMaterial(object):
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(data, i)
             if match == True:
-                match_position = self.get_match_position(i)
-                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, match_position)
+                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, data.iloc[i].x, data.iloc[i].y)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
+    # need to get array based on x and y that assumes nothing about shape
+    #have x and y coordinates - so just scale based on taking first x to 0 and first y to 0
     def get_match_position(self, i):
         x = i//self.len_y
         if x == 0:
