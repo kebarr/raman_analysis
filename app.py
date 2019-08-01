@@ -214,7 +214,6 @@ def upload_image():
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(output_filename, 'rb') as image:
                     img_str = base64.b64encode(image.read()).decode("utf-8")
-
                 return jsonify({'image': img_str, 'output_filename': output_filename})
 
 
