@@ -66,7 +66,6 @@ class MatchImage(object):
 
 
     def add_value_to_image(self, match):
-        print(match.x, match.y)
         con = match.confidence
         # scale it manually to increase contrast
         if con > 70:
@@ -80,7 +79,7 @@ class MatchImage(object):
         else:
             contrast = 10 
         # just override previous value in image
-        self.im_array[match.x+2, match.y+1] = [255, 128, 0, np.uint8(con*0.01*255)]
+        self.im_array[match.x, match.y] = [255, 128, 0, np.uint8(con*0.01*255)]
 
     # need to ask Andy about this
     def save_image(self, output_filename):

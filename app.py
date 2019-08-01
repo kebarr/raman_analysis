@@ -213,7 +213,9 @@ def upload_image():
                 fm = find_material(data_filename, material, sb_bool)
                 fm.overlay_match_positions(uploaded_file_path, output_filename)
                 with open(output_filename, 'rb') as image:
-                    img_str = base64.b64encode(image.read())
+                    img_str = base64.b64encode(image.read()).decode("utf-8")
+                print(type(img_str))
+                print(img_str)
                 return {'image': img_str, 'output_filename': output_filename}
 
 
