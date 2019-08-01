@@ -48,7 +48,7 @@ class WhittakerSmoother(object):
     # doing s * D.T.dot(D) with it, then taking the upper triangular bands.
     diag_sums = np.vstack([
         np.pad(s*np.cumsum(d[-i:]*d[:i]), ((k-i,0),), 'constant')
-        for i in xrange(1, k+1)])
+        for i in range(1, k+1)])
     upper_bands = np.tile(diag_sums[:,-1:], n)
     upper_bands[:,:k] = diag_sums
     for i,ds in enumerate(diag_sums):
@@ -73,7 +73,7 @@ def als_baseline(intensities, asymmetry_param=0.05, smoothness_param=1e6,max_ite
     p = asymmetry_param
     # Initialize weights.
     w = np.ones(intensities.shape[0])
-    for i in xrange(max_iters):
+    for i in range(max_iters):
         z = smoother.smooth(w)
         mask = intensities > z
         new_w = p*mask + (1-p)*(~mask)
@@ -156,7 +156,6 @@ class FindMaterial(object):
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
         self.len_x = len(data.loc[data["x"] == data.x[0]])
         self.len_y = int(len(data)/float(self.len_x))
-        print(self.len_x, self.len_y)
         self.len = len(data)
         return data
 
