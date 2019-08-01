@@ -48,7 +48,7 @@ class WhittakerSmoother(object):
     # doing s * D.T.dot(D) with it, then taking the upper triangular bands.
     diag_sums = np.vstack([
         np.pad(s*np.cumsum(d[-i:]*d[:i]), ((k-i,0),), 'constant')
-        for i in xrange(1, k+1)])
+        for i in range(1, k+1)])
     upper_bands = np.tile(diag_sums[:,-1:], n)
     upper_bands[:,:k] = diag_sums
     for i,ds in enumerate(diag_sums):
@@ -73,7 +73,7 @@ def als_baseline(intensities, asymmetry_param=0.05, smoothness_param=1e6,max_ite
     p = asymmetry_param
     # Initialize weights.
     w = np.ones(intensities.shape[0])
-    for i in xrange(max_iters):
+    for i in range(max_iters):
         z = smoother.smooth(w)
         mask = intensities > z
         new_w = p*mask + (1-p)*(~mask)
@@ -154,9 +154,11 @@ class FindMaterial(object):
         self.wavelengths = wavelengths
         print("successfully loaded data")
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
-        self.len_x = len(data.loc[data["x"] == data.x[0]])
-        self.len_y = int(len(data)/float(self.len_x))
-        print(self.len_x, self.len_y)
+        self.len_x_0 = len(data.loc[data["x"] == data.x[0]])
+        self.x_0 = data.x[0]
+        self.y_0 = data.y[0]
+        self.x_max = data.x[len(data)-1]
+        self.y_max = data.y[len(data)-1]
         self.len = len(data)
         return data
 
@@ -245,18 +247,8 @@ class FindMaterial(object):
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(data, i)
             if match == True:
-                match_position = self.get_match_position(i)
-                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, match_position)
+                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, data.iloc[i].x, data.iloc[i].y)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
-
-    def get_match_position(self, i):
-        x = i//self.len_y
-        if x == 0:
-            # avoid division by 0
-            y = i
-        else:
-            y = i%(x*self.len_y)
-        return (x, y)
 
     def get_condifence_matches(self, thresh='medium'):
         if thresh=='medium':
@@ -271,7 +263,7 @@ class FindMaterial(object):
         return self.get_condifence_matches()
 
     def overlay_match_positions(self, bitmap_filename, output_filename, confidence="medium"):
-        mi = MatchImage(self.len_x, self.len_y)
+        mi = MatchImage(self.x_0, self.y_0, self.x_max, self.y_max)
         mi.add_image(bitmap_filename)
         if confidence == "medium":
             matches = self.get_med_confidence_matches()
