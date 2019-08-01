@@ -91,11 +91,9 @@ class MatchImage(object):
         self.im_array[int(self.x_scale_factor*(match.x- self.x_0)), int(self.y_scale_factor*(match.y-self.y_0))] = [255, 128, 0, np.uint8(con*0.01*255)]
         x_to_add = int(self.x_scale_factor)*2
         y_to_add = int(self.y_scale_factor)*2
-        print(x_to_add, y_to_add)
         if int(self.x_scale_factor*(match.x- self.x_0)) + x_to_add -1 < len(self.im_array):
             if int(self.y_scale_factor*(match.y- self.y_0)) + y_to_add -1 < len(self.im_array[0]):
                 for i in range(x_to_add):
-                    print("in loop, i: %d" %(i))
                     for j in range(y_to_add):
                         # as scaled up, need to colous other pixels according to scale factor
                         self.im_array[int(self.x_scale_factor*(match.x- self.x_0))+i, int(self.y_scale_factor*(match.y-self.y_0))+j] = [255, 128, 0, np.uint8(con*0.01*255)]
