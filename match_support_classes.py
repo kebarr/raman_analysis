@@ -57,8 +57,8 @@ class MatchImage(object):
         self.y_0 = y_0
         self.x_max = x_max
         self.y_max = y_max
-        self.len_x = x_max - x_0
-        self.len_y = y_max - y_0
+        self.len_x = np.abs(x_max - x_0)
+        self.len_y = np.abs(y_max - y_0)
         print("x0 %d, y0 %d, xmax %d ymax %d len x 0 %d len y 0 %d" % (x_0, y_0, x_max, y_max, self.len_x, self.len_y))
 
     def add_image(self, image_filename):
