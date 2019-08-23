@@ -43,7 +43,7 @@ bootstrap = Bootstrap(app)
 CACHE_CONFIG = {
     # try 'filesystem' if you don't want to setup redis
     'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379'),
+    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://192.168.99.100:6379'),
     'CACHE_DEFAULT_TIMEOUT': 60*60*3
 }
 cache = Cache()
@@ -325,7 +325,7 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host="0.0.0.0", debug=True)
 
 
 # minimum to do!!
