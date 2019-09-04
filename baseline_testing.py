@@ -3,8 +3,11 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import sparse
+from scipy import optimize, signal
+import scipy
 from PIL import Image
-
+from scipy.linalg import solveh_banded
+import pandas as pd
 
 lam=10**6
 L = 951
@@ -120,7 +123,7 @@ def als_baseline(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-
     # Rename p for concision.
     p = asymmetry_param
     # Initialize weights.
-    w_init = np.ones(data.iloc[0].shape[0]-2)
+    w = np.ones(data.iloc[0].shape[0]-2)
     for i in range(max_iters):
         z = smoother.smooth(w)
         mask = intensities > z
@@ -174,7 +177,7 @@ timeit.timeit(wrapped, number=10) # 79 seconds for 10 iterations
 wrapped = wrapper(test_baseline_new, data, baseline_poly_smooth)
 timeit.timeit(wrapped, number=10) # 94 seconds for 10 iterations
 
-# try without smoothing
+# try without smoothing... doesn't work... smooth at beginning or end end?
 def als_baseline_no_smooth(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-5, verbose=False):
     '''Computes the asymmetric least squares baseline.
     * http://www.science.uva.nl/~hboelens/publications/draftpub/Eilers_2005.pdf
@@ -184,6 +187,7 @@ def als_baseline_no_smooth(intensities, asymmetry_param=0.05, max_iters=5, conv_
     '''    # Rename p for concision.
     p = asymmetry_param
     # Initialize weights.
+    smoother = WhittakerSmoother(intensities)
     w = np.ones(data.iloc[0].shape[0]-2)
     for i in range(max_iters):
         mask = intensities > w
@@ -192,9 +196,47 @@ def als_baseline_no_smooth(intensities, asymmetry_param=0.05, max_iters=5, conv_
         if conv < conv_thresh:
             break
         w = new_w
-    return w
+    return smoother.smooth(w)
 
 data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
 data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
 wrapped = wrapper(test_baseline_new, data, als_baseline_no_smooth)
-timeit.timeit(wrapped, number=10) # down to 15s
+timeit.timeit(wrapped, number=10) # down to 15s...18 if we smooth once at the end
+
+res = test_baseline_new(data, als_baseline_no_smooth) # think this might actually work.... 
+
+def just_smooth(intensities):
+    smoother = WhittakerSmoother(intensities)
+    return smoother.smooth(intensities)
+
+data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
+data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+res = test_baseline_new(data, just_smooth)
+
+data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
+data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+wrapped = wrapper(test_baseline_new, data, just_smooth)
+timeit.timeit(wrapped, number=1) # just doing the smoothing takes between 3 and 4 seconds
+
+
+# try using this smoothing: https://github.com/mhvwerts/whittaker-eilers-smoother/blob/master/whittaker_smooth.py
+
+def speyediff(N, d, format='csc'):
+    """
+    (utility function)
+    Construct a d-th order sparse difference matrix based on 
+    an initial N x N identity matrix
+    
+    Final matrix (N-d) x N
+    """
+    
+    assert not (d < 0), "d must be non negative"
+    shape     = (N-d, N)
+    diagonals = np.zeros(2*d + 1)
+    diagonals[d] = 1.
+    for i in range(d):
+        diff = diagonals[:-1] - diagonals[1:]
+        diagonals = diff
+    offsets = np.arange(d+1)
+    spmat = sparse.diags(diagonals, offsets, shape, format=format)
+    return spmat
