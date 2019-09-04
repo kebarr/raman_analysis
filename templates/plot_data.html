@@ -105,10 +105,10 @@
             <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
             <form id="upload-file" method="post" enctype="multipart/form-data">
                 <fieldset>
-                    <label for="file">Select a photo</label>
+                    <label for="file">Select a photo (if none is selected, the positions will be plotted against a black background)</label>
                     <input name="file" type="file"></br>
                     Output filename: 
-                    <input type="text" name="output_filename"></br>
+                    <input type="text" name="output_filename" value="test.png"></br>
                 </fieldset>
                 <fieldset>
                     <button id="upload-file-btn" class="btn btn-primary start" type="button">Upload and plot locations</button>

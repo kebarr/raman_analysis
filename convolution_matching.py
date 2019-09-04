@@ -276,6 +276,19 @@ class FindMaterial(object):
             mi.add_value_to_image(match )
         mi.save_image(output_filename)
 
+    def overlay_match_positions_blank(self, output_filename, confidence="medium"):
+        mi = MatchImage(self.x_0, self.y_0, self.x_max, self.y_max)
+        if confidence == "medium":
+            matches = self.get_med_confidence_matches()
+        elif confidence == "high":
+            matches = self.get_high_confidence_matches()
+        else:
+            matches = self.matches.matches
+        # matches is (match_index, confidence score)
+        for match in matches:
+            mi.add_value_to_image(match )
+        mi.save_image(output_filename)
+
     def get_peak_heights(self, mean_non_peaks, stdev_non_peaks, spectrum):
         results = []
         peaks = 0
