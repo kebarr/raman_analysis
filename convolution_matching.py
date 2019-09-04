@@ -121,9 +121,9 @@ class FindMaterial(object):
         for i in range(len(data)):
             new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), data_arr[i][2:] - als_baseline(data_arr[i][2:])])
             data.iloc[i] = new
-        print("baseline subtracted, writing result to file: %s " % (baseline_filename))
+        #print("baseline subtracted, writing result to file: %s " % (baseline_filename))
         self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
-        data.to_csv(baseline_filename, sep='\t')
+        #data.to_csv(baseline_filename, sep='\t')
         return data
 
     def load(self):
