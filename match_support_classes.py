@@ -77,7 +77,7 @@ class MatchImage(object):
         # need to work out dimensions of image
         self.x_scale_factor = float(len_x)/(self.len_x+1)
         self.y_scale_factor = float(len_y)/(self.len_y+1)
-        self.im_array = np.array([[[1, 1, 1, 1] for i in range(int(len_y))] for j in range(int(len_x))])
+        self.im_array = np.array([[[0, 0, 0, 255] for i in range(int(len_y))] for j in range(int(len_x))])
         print(self.im_array.shape)
 
     def add_value_to_image(self, match):
