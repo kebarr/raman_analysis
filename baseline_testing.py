@@ -8,6 +8,7 @@ import scipy
 from PIL import Image
 from scipy.linalg import solveh_banded
 import pandas as pd
+from scipy.sparse.linalg import splu
 
 lam=10**6
 L = 951
@@ -201,7 +202,7 @@ def als_baseline_no_smooth(intensities, asymmetry_param=0.05, max_iters=5, conv_
 data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
 data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
 wrapped = wrapper(test_baseline_new, data, als_baseline_no_smooth)
-timeit.timeit(wrapped, number=10) # down to 15s...18 if we smooth once at the end
+timeit.timeit(wrapped, number=10) # down to 15s...18 if we smooth once at the end, 6 mins on full data, has issue round matches, so no useable in papers
 
 res = test_baseline_new(data, als_baseline_no_smooth) # think this might actually work.... 
 
@@ -240,3 +241,65 @@ def speyediff(N, d, format='csc'):
     offsets = np.arange(d+1)
     spmat = sparse.diags(diagonals, offsets, shape, format=format)
     return spmat
+
+def whittaker_smooth(y, lmbd, d = 2):
+    """
+    Implementation of the Whittaker smoothing algorithm,
+    based on the work by Eilers [1].
+    [1] P. H. C. Eilers, "A perfect smoother", Anal. Chem. 2003, (75), 3631-3636
+    
+    The larger 'lmbd', the smoother the data.
+    For smoothing of a complete data series, sampled at equal intervals
+    This implementation uses sparse matrices enabling high-speed processing
+    of large input vectors
+    
+    ---------
+    
+    Arguments :
+    
+    y       : vector containing raw data
+    lmbd    : parameter for the smoothing algorithm (roughness penalty)
+    d       : order of the smoothing 
+    
+    ---------
+    Returns :
+    
+    z       : vector of the smoothed data.
+    """
+
+    m = len(y)
+    E = sparse.eye(m, format='csc')
+    D = speyediff(m, d, format='csc')
+    coefmat = E + lmbd * D.conj().T.dot(D)
+    z = splu(coefmat).solve(y)
+    return z    
+
+
+def als_baseline_new_smooth(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-5, verbose=False):
+    '''Computes the asymmetric least squares baseline.
+    * http://www.science.uva.nl/~hboelens/publications/draftpub/Eilers_2005.pdf
+    smoothness_param: Relative importance of smoothness of the predicted response.
+    asymmetry_param (p): if y > z, w = p, otherwise w = 1-p.
+                        Setting p=1 is effectively a hinge loss.
+    '''
+    # Rename p for concision.
+    p = asymmetry_param
+    # Initialize weights.
+    w = np.ones(data.iloc[0].shape[0]-2)
+    for i in range(max_iters):
+        z = whittaker_smooth(w, 1e6)
+        mask = intensities > z
+        new_w = p*mask + (1-p)*(~mask)
+        conv = np.linalg.norm(new_w - w)
+        if conv < conv_thresh:
+            break
+        w = new_w
+    return z
+
+
+data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
+data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+wrapped = wrapper(test_baseline_new, data, als_baseline_new_smooth)
+timeit.timeit(wrapped, number=10) 
+
+res = test_baseline_new(data, als_baseline_new_smooth)
