@@ -193,29 +193,42 @@ def plot_example_match(fm):
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
     if request.method == 'POST':
-        files = request.files['file']
-        if files:
-            filename = secure_filename(files.filename)
-            filename = gen_file_name(filename)
-            if filename.endswith(".bmp") or filename.endswith(".jpeg"):
-                mime_type = files.content_type
-                # save file to disk
-                uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
-                files.save(uploaded_file_path)
-                # get file size after saving
-                size = os.path.getsize(uploaded_file_path)
-                uploadfile(name=filename, type=mime_type, size=size)
+        print("in first conditional")
+        if request.files['file'] is not None:
+            files = request.files['file']
+            if files:
+                filename = secure_filename(files.filename)
+                filename = gen_file_name(filename)
+                if filename.endswith(".bmp") or filename.endswith(".jpeg"):
+                    mime_type = files.content_type
+                    # save file to disk
+                    uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
+                    files.save(uploaded_file_path)
+                    # get file size after saving
+                    size = os.path.getsize(uploaded_file_path)
+                    uploadfile(name=filename, type=mime_type, size=size)
+                    data_filename = request.form.get("filename")
+                    material = request.form.get("material")
+                    sb = request.form.get("sb")
+                    sb_bool = True if sb == "True" else False
+                    output_filename = request.form.get("output_filename")
+                    fm = find_material(data_filename, material, sb_bool)
+                    fm.overlay_match_positions(uploaded_file_path, output_filename)
+                    with open(output_filename, 'rb') as image:
+                        img_str = base64.b64encode(image.read()).decode("utf-8")
+                    return jsonify({'image': img_str, 'output_filename': output_filename})
+            else:
+                print("no file selected")
                 data_filename = request.form.get("filename")
                 material = request.form.get("material")
                 sb = request.form.get("sb")
-                sb_bool = True if sb == "True" else False
                 output_filename = request.form.get("output_filename")
+                sb_bool = True if sb == "True" else False
                 fm = find_material(data_filename, material, sb_bool)
-                fm.overlay_match_positions(uploaded_file_path, output_filename)
+                fm.overlay_match_positions_blank(output_filename)
                 with open(output_filename, 'rb') as image:
                     img_str = base64.b64encode(image.read()).decode("utf-8")
                 return jsonify({'image': img_str, 'output_filename': output_filename})
-
 
 
 # now need to wire this in to plot example baseline

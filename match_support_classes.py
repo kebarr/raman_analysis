@@ -67,12 +67,18 @@ class MatchImage(object):
         im = im.convert("RGBA")
         #resize image leaves slight border around the outside, so increase dimensions so actual image dimensions match
         self.im_array = np.array(im)
-        print(self.im_array.shape, len(self.im_array[0][0]), len(self.im_array[0]), len(self.im_array))
         # need to upsample data rather than resize image as otherwise it is unacceptably blurry
         self.x_scale_factor = float(len(self.im_array))/(self.len_x+1)
         self.y_scale_factor = float(len(self.im_array[0]))/(self.len_y+1)
         print("x scale foctore: %f, y scale factor %f" % (self.x_scale_factor, self.y_scale_factor))
 
+    def create_blank_image(self, len_x, len_y):
+        print("creating blank image: %d, %d " % (len_x, len_y))
+        # need to work out dimensions of image
+        self.x_scale_factor = float(len_x)/(self.len_x+1)
+        self.y_scale_factor = float(len_y)/(self.len_y+1)
+        self.im_array = np.array([[[1, 1, 1, 1] for i in range(int(len_y))] for j in range(int(len_x))])
+        print(self.im_array.shape)
 
     def add_value_to_image(self, match):
         con = match.confidence
@@ -104,7 +110,7 @@ class MatchImage(object):
 
     # need to ask Andy about this
     def save_image(self, output_filename):
-        final = Image.fromarray(self.im_array)
+        final = Image.fromarray(self.im_array.astype(np.uint8))
         final.save(output_filename, "PNG")
 
 
