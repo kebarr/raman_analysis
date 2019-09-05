@@ -75,7 +75,6 @@ def als_baseline(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-
     p = asymmetry_param
     # Initialize weights.
     smoother = WhittakerSmoother(intensities)
-    print(intensities.shape)
     w = np.ones(intensities.shape[0])
     for i in range(max_iters):
         mask = intensities > w
@@ -142,11 +141,8 @@ class FindMaterial(object):
         print("spec start: ", self.spectra[0][:5])
         self.positions = list(zip(data.x, data.y)) # can probably change this to unnamed 0 and 1 to cut out rename
         print("positions: ", self.positions[:2])
-        print(self.spectra.shape)
-        print(data.shape)
         for i, col in enumerate(data.columns[2:]):
             shifts[i] = float(col)
-        print(shifts.shape)
         self.shifts = shifts
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
@@ -203,7 +199,6 @@ class FindMaterial(object):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
         spectrum = self.spectra[index]
-        print(spectrum.shape)
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
         max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
