@@ -212,7 +212,7 @@ def just_smooth(intensities):
 
 data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
 data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
-res = test_baseline_new(data, just_smooth)
+res = test_baseline_new(data, just_smooth) # 5 mins 15 secs in real dataset, 
 
 data= pd.read_csv('uploads/raw_example.csv', sep='\t', encoding='utf-8')
 data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
@@ -302,4 +302,7 @@ data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
 wrapped = wrapper(test_baseline_new, data, als_baseline_new_smooth)
 timeit.timeit(wrapped, number=10) 
 
-res = test_baseline_new(data, als_baseline_new_smooth)
+res = test_baseline_new(data, als_baseline_new_smooth) # 70 seconds!!! twice as slow!!!
+
+
+# to avoid slow pandas copying, might be better to have 2 dfs, one of positions, and one of spectra, 

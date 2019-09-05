@@ -75,6 +75,7 @@ def als_baseline(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-
     p = asymmetry_param
     # Initialize weights.
     smoother = WhittakerSmoother(intensities)
+    print(intensities.shape)
     w = np.ones(intensities.shape[0])
     for i in range(max_iters):
         mask = intensities > w
@@ -102,29 +103,20 @@ class FindMaterial(object):
         if os.path.exists(self.pickle_filename):
             self.load()
         else:
-            data = self.load_data()
-            self.find_matches(data)
+            self.load_data()
+            self.find_matches()
             self.write_to_file()
 
-    def subtract_baseline_data(self, data):
+    def subtract_baseline_data(self):
         baseline_filename = self.data_filename.split('.csv')[0] + '_baselined.csv'
-        index_to_compare = np.random.randint(0, len(data))
-        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(data.iloc[index_to_compare])
-        lam=10**6
-        L = len(data.iloc[0]) -2 
-        D = scipy.sparse.csc_matrix(np.diff(np.eye(L), 2))
-        w = np.ones(L)
-        W = scipy.sparse.spdiags(w, 0, L, L)
-        Z = W + lam * D.dot(D.transpose())
+        index_to_compare = np.random.randint(0, len(self.spectra))
+        self.random_sample_compare_before_subtract_baseline = copy.deepcopy(self.spectra[index_to_compare])
         print("subtracting baselines.... please wait!!!!!")
-        data_arr = np.array(data)
-        for i in range(len(data)):
-            new = np.concatenate([np.array([data.iloc[i].x]), np.array([data.iloc[i].y]), data_arr[i][2:] - als_baseline(data_arr[i][2:])])
-            data.iloc[i] = new
+        for i in range(len(self.spectra)):
+            print(len(self.spectra[i]))
+            self.spectra[i] = self.spectra[i] - als_baseline(self.spectra[i])
         #print("baseline subtracted, writing result to file: %s " % (baseline_filename))
-        self.random_sample_compare_after_subtract_baseline = data.iloc[index_to_compare]
-        #data.to_csv(baseline_filename, sep='\t')
-        return data
+        self.random_sample_compare_after_subtract_baseline = self.spectra[index_to_compare]
 
     def load(self):
         print("loading from pickle")
@@ -145,16 +137,22 @@ class FindMaterial(object):
         print("reading data from %s to locate %s" % (fname, self.material_name))
         data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        # should be better way to do this, but i can't find it
+        shifts = np.array([0 for i in range(len(data.columns[2:]))])
+        self.spectra = data.values[2:,]
+        self.positions = list(zip(data.x, data.y))
+        print(self.positions[:2])
+        print(self.spectra.shape)
+        print(data.shape)
+        for i, col in enumerate(data.columns[2:]):
+            shifts[i] = float(col)
+        print(shifts.shape)
+        self.shifts = shifts
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
         #td.columns[index] is wavelength at position index
         if self.subtract_baseline == True:
-           data = self.subtract_baseline_data(data)
-        # should be better way to do this, but i can't find it
-        wavelengths = np.array([0 for i in range(len(data.columns[2:]))])
-        for i, col in enumerate(data.columns[2:]):
-            wavelengths[i] = float(col)
-        self.wavelengths = wavelengths
+           self.subtract_baseline_data()
         print("successfully loaded data")
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
         self.len_x_0 = len(data.loc[data["x"] == data.x[0]])
@@ -163,7 +161,6 @@ class FindMaterial(object):
         self.x_max = data.x[len(data)-1]
         self.y_max = data.y[len(data)-1]
         self.len = len(data)
-        return data
 
     def find_indices_of_peak_wavelengths(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
@@ -192,8 +189,8 @@ class FindMaterial(object):
 
 
 
-    def prepare_data(self, data, index):
-        d = data.iloc[index].values[self.lowest_index:self.highest_index]
+    def prepare_data(self, index):
+        d = self.spectra[index].values[self.lowest_index:self.highest_index]
         d = d.reshape((len(d), 1))
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
@@ -202,10 +199,10 @@ class FindMaterial(object):
      
 
     # TODO COMPARE PERFORMANCE OF DOING THIS FIRST AND CONVOLUTION SECOND, OR OTHER WAY ROUND
-    def check_match(self, data, index):
+    def check_match(self, index):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
-        spectrum = data.iloc[index]
+        spectrum = self.shifts[index]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
         max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
@@ -227,10 +224,10 @@ class FindMaterial(object):
         else:
             return False, 0, [0]
 
-    def is_match(self, data, index):
-        res, con, peak_data = self.check_match(data, index)
+    def is_match(self, index):
+        res, con, peak_data = self.check_match(index)
         if res:
-            to_match = self.prepare_data(data, index)
+            to_match = self.prepare_data(index)
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
@@ -240,17 +237,17 @@ class FindMaterial(object):
                 return True, con, conv_peaks, peak_data
         return False, 0, [0], [0]
 
-    def find_matches(self, data):
+    def find_matches(self):
         self.find_indices_of_peak_wavelengths()
-        number_locations = len(data)
+        number_locations = len(self.spectra)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
         for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-            match, con, conv_peaks, peak_data = self.is_match(data, i)
+            match, con, conv_peaks, peak_data = self.is_match(i)
             if match == True:
-                self.matches.add_match(self.material, con, data.iloc[i], conv_peaks, peak_data, data.iloc[i].x, data.iloc[i].y)
+                self.matches.add_match(self.material, con, self.spectra[i], conv_peaks, peak_data, self.spectra[i].x, self.spectra[i].y)
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_condifence_matches(self, thresh='medium'):
