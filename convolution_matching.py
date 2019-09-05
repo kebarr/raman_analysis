@@ -213,7 +213,7 @@ class FindMaterial(object):
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_all = np.std(spectrum)
-        if max_peaks > mean_non_peaks+5*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
+        if max_peaks > mean_non_peaks+3*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_all, spectrum)
             if peaks > 0:
                 if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, valid for GO peaks
@@ -234,7 +234,6 @@ class FindMaterial(object):
 
     def is_match(self, index):
         res, con, peak_data = self.check_match(index)
-        print(res)
         if res:
             to_match = self.prepare_data(index)
             template = self.material.template
@@ -243,6 +242,9 @@ class FindMaterial(object):
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0], [0]
             elif len(conv_peaks[0]) > 0:
+                print("match")
+                #print("conv peaks: ", conv_peaks)
+                #print("peak data: ", peak_data)
                 return True, con, conv_peaks, peak_data
         return False, 0, [0], [0]
 
@@ -251,7 +253,7 @@ class FindMaterial(object):
         number_locations = len(self.spectra)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
-        for i in range(number_locations):
+        for i in range(42300, 43300):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(i)
