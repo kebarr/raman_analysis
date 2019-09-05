@@ -40,7 +40,7 @@ d[deriv_order] = 1
 d = np.diff(d, n=deriv_order)
 n = 951
 k = len(d)
-s = float(1e6) # smoothness param
+s = float(1e4) # smoothness param - 1e5 better than 1e6
 
 # Here be dragons: essentially we're faking a big banded matrix D,
 # doing s * D.T.dot(D) with it, then taking the upper triangular bands.
@@ -65,7 +65,7 @@ class WhittakerSmoother(object):
 
 #https://gist.github.com/perimosocordiae/efabc30c4b2c9afd8a83
 # try without smoothing... doesn't work... smooth at beginning or end end?
-def als_baseline(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-5, verbose=False):
+def als_baseline(intensities, asymmetry_param=0.05, max_iters=3, conv_thresh=1e-5, verbose=False):
     '''Computes the asymmetric least squares baseline.
     * http://www.science.uva.nl/~hboelens/publications/draftpub/Eilers_2005.pdf
     smoothness_param: Relative importance of smoothness of the predicted response.
@@ -213,12 +213,15 @@ class FindMaterial(object):
         if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
             if peaks > 0:
-                # calculate how far beyond non peak mean as a confidence measure
-                if max_peaks < (2000+mean_non_peaks):
-                    confidence = (100.*max_peaks)/(2000+mean_non_peaks)
+                if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, 
+                    # calculate how far beyond non peak mean as a confidence measure
+                    if max_peaks < (2000+mean_non_peaks):
+                        confidence = (100.*max_peaks)/(2000+mean_non_peaks)
+                    else:
+                        confidence = 100
+                    return True, confidence, peak_data
                 else:
-                    confidence = 100
-                return True, confidence, peak_data
+                    return False, 0, [0]
             return False, 0, [0]
         else:
             return False, 0, [0]
