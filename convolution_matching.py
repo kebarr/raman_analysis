@@ -113,7 +113,6 @@ class FindMaterial(object):
         self.random_sample_compare_before_subtract_baseline = copy.deepcopy(self.spectra[index_to_compare])
         print("subtracting baselines.... please wait!!!!!")
         for i in range(len(self.spectra)):
-            print(len(self.spectra[i]))
             self.spectra[i] = self.spectra[i] - als_baseline(self.spectra[i])
         #print("baseline subtracted, writing result to file: %s " % (baseline_filename))
         self.random_sample_compare_after_subtract_baseline = self.spectra[index_to_compare]
@@ -139,9 +138,10 @@ class FindMaterial(object):
         data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
         # should be better way to do this, but i can't find it
         shifts = np.array([0 for i in range(len(data.columns[2:]))])
-        self.spectra = data.values[2:,]
-        self.positions = list(zip(data.x, data.y))
-        print(self.positions[:2])
+        self.spectra = data.values[:,2:]
+        print("spec start: ", self.spectra[0][:5])
+        self.positions = list(zip(data.x, data.y)) # can probably change this to unnamed 0 and 1 to cut out rename
+        print("positions: ", self.positions[:2])
         print(self.spectra.shape)
         print(data.shape)
         for i, col in enumerate(data.columns[2:]):
@@ -162,25 +162,25 @@ class FindMaterial(object):
         self.y_max = data.y[len(data)-1]
         self.len = len(data)
 
-    def find_indices_of_peak_wavelengths(self):
+    def find_indices_of_peak_shifts(self):
         ##TODO - THIS ASSUMES TWO PEAKS!!! - just make a list and append pairs
         lower_bound_1 = self.material.peaks[0][0]
         upper_bound_1 = self.material.peaks[0][1]
         lower_bound_2 = self.material.peaks[1][0]
         upper_bound_2 = self.material.peaks[1][1]
-        cond = ((self.wavelengths > lower_bound_1) & (self.wavelengths < upper_bound_1)) | ((self.wavelengths > lower_bound_2) & (self.wavelengths < upper_bound_2))
+        cond = ((self.shifts > lower_bound_1) & (self.shifts < upper_bound_1)) | ((self.shifts > lower_bound_2) & (self.shifts < upper_bound_2))
         self.peak_indices = np.where(cond)
         if len(self.peak_indices) == 0:
-            raise ValueError("Wavelengths of data set do not include expected peak wavelengths")
+            raise ValueError("Shifts of data set do not include expected peak shifts")
         # to rule out possibility of getting other d peak and weird stuff at beginning,
         # do +- 200 if powwible
         if self.peak_indices[0][0] > 201:
             self.lowest_index = self.peak_indices[0][0] - 200
         else:
             self.lowest_index = self.peak_indices[0][0]
-        if self.peak_indices[0][-1] < len(self.wavelengths) -400:
+        if self.peak_indices[0][-1] < len(self.shifts) -400:
             self.highest_index = self.peak_indices[0][-1] +400
-        elif self.peak_indices[0][-1] < len(self.wavelengths) -200:
+        elif self.peak_indices[0][-1] < len(self.shifts) -200:
             self.highest_index = self.peak_indices[0][-1] +200
         else:
             self.highest_index = self.peak_indices[0][-1]
@@ -190,7 +190,7 @@ class FindMaterial(object):
 
 
     def prepare_data(self, index):
-        d = self.spectra[index].values[self.lowest_index:self.highest_index]
+        d = self.spectra[index][self.lowest_index:self.highest_index]
         d = d.reshape((len(d), 1))
         min_max_scaler = preprocessing.MinMaxScaler()
         d_scaled = min_max_scaler.fit_transform(d)
@@ -202,7 +202,8 @@ class FindMaterial(object):
     def check_match(self, index):
         peak_start = self.peak_indices[0][0]
         peak_end = self.peak_indices[0][-1]
-        spectrum = self.shifts[index]
+        spectrum = self.spectra[index]
+        print(spectrum.shape)
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
         max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
@@ -238,7 +239,7 @@ class FindMaterial(object):
         return False, 0, [0], [0]
 
     def find_matches(self):
-        self.find_indices_of_peak_wavelengths()
+        self.find_indices_of_peak_shifts()
         number_locations = len(self.spectra)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
@@ -247,7 +248,7 @@ class FindMaterial(object):
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(i)
             if match == True:
-                self.matches.add_match(self.material, con, self.spectra[i], conv_peaks, peak_data, self.spectra[i].x, self.spectra[i].y)
+                self.matches.add_match(self.material, con, self.spectra[i], conv_peaks, peak_data, self.positions[i][0], self.positions[i][1])
         print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_condifence_matches(self, thresh='medium'):
@@ -303,7 +304,7 @@ class FindMaterial(object):
     def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
         # i need index of start of peak and index of end of peak
         # data has been scaled and we don't know by how much....
-        cond = ((self.wavelengths > self.material.peaks[peak_ind][0]) & (self.wavelengths < self.material.peaks[peak_ind][1]))
+        cond = ((self.shifts > self.material.peaks[peak_ind][0]) & (self.shifts < self.material.peaks[peak_ind][1]))
         peak_indices = np.where(cond)
         peak = spectrum[peak_indices[0][0]:peak_indices[0][-1]]
         peak_max = np.max(peak)

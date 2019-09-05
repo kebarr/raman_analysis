@@ -314,8 +314,6 @@ def download_image():
     uploads = os.path.join(app.root_path)
     return send_from_directory(directory=uploads, filename=filename, as_attachment=True)
 
-# TODO: export sample spectra, shuffle random spectrum in case poor match shown
-# show what i've compared and highest confidence match. fix cache.
 
 @app.route('/find_peaks', methods=['POST'])
 def actually_do_the_stuff():
