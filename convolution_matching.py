@@ -71,19 +71,22 @@ def als_baseline(intensities, asymmetry_param=0.05, max_iters=5, conv_thresh=1e-
     smoothness_param: Relative importance of smoothness of the predicted response.
     asymmetry_param (p): if y > z, w = p, otherwise w = 1-p.
                         Setting p=1 is effectively a hinge loss.
-    '''    # Rename p for concision.
+    '''
+    smoother = WhittakerSmoother(intensities)
+    # Rename p for concision.
     p = asymmetry_param
     # Initialize weights.
-    smoother = WhittakerSmoother(intensities)
     w = np.ones(intensities.shape[0])
     for i in range(max_iters):
-        mask = intensities > w
+        z = smoother.smooth(w)
+        mask = intensities > z
         new_w = p*mask + (1-p)*(~mask)
         conv = np.linalg.norm(new_w - w)
         if conv < conv_thresh:
             break
         w = new_w
-    return smoother.smooth(w)
+    return z
+
 
 
 # Convolution-based matching for Raman spectral analysis- identify peaks representitive of specific materials
