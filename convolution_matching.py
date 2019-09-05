@@ -12,6 +12,10 @@ import scipy
 from sklearn import preprocessing
 import collections
 import pickle
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
 
 from scipy.linalg import solveh_banded
 from PIL import Image
@@ -204,21 +208,23 @@ class FindMaterial(object):
         spectrum = self.spectra[index]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        max_peaks = np.max(spectrum[peak_start:peak_end]) + 50
+        # not robust against cosmic rays
+        max_peaks = np.partition(spectrum[peak_start:peak_end], -2)[-2] # second largest, to avoid cosmic rays being max
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
-        stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
-        # TODO- confidence scores can be high when mean of data is close to 0, even for pretty shitty matches, 
-        # try basing off standard deviation near peaks
-        if max_peaks > mean_non_peaks+5*stdev_non_peaks:# be quite forgiving as cosmic rays etc will mess it up
-            peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_non_peaks, spectrum)
+        stdev_all = np.std(spectrum)
+        if max_peaks > mean_non_peaks+5*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
+            peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_all, spectrum)
             if peaks > 0:
-                if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, 
+                if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, valid for GO peaks
                     # calculate how far beyond non peak mean as a confidence measure
-                    if max_peaks < (2000+mean_non_peaks):
+                    if max_peaks < (10*stdev_all+mean_non_peaks):
                         confidence = (100.*max_peaks)/(2000+mean_non_peaks)
                     else:
                         confidence = 100
+                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
+                    plt.plot(spectrum)
+                    plt.show()
                     return True, confidence, peak_data
                 else:
                     return False, 0, [0]
@@ -228,6 +234,7 @@ class FindMaterial(object):
 
     def is_match(self, index):
         res, con, peak_data = self.check_match(index)
+        print(res)
         if res:
             to_match = self.prepare_data(index)
             template = self.material.template
@@ -292,17 +299,17 @@ class FindMaterial(object):
             mi.add_value_to_image(match)
         mi.save_image(output_filename)
 
-    def get_peak_heights(self, mean_non_peaks, stdev_non_peaks, spectrum):
+    def get_peak_heights(self, mean_non_peaks, stdev_all, spectrum):
         results = []
         peaks = 0
         for peak in range(len(self.material.peaks)):
-            peak_present, peak_max = self.peak_at_location(peak, mean_non_peaks, stdev_non_peaks, spectrum)
+            peak_present, peak_max = self.peak_at_location(peak, mean_non_peaks, stdev_all, spectrum)
             results.append((peak_present, peak_max))
             if peak_present:
                 peaks += 1
         return results, peaks
 
-    def peak_at_location(self, peak_ind, mean_non_peaks, stdev_non_peaks, spectrum):
+    def peak_at_location(self, peak_ind, mean_non_peaks, stdev_all, spectrum):
         # i need index of start of peak and index of end of peak
         # data has been scaled and we don't know by how much....
         cond = ((self.shifts > self.material.peaks[peak_ind][0]) & (self.shifts < self.material.peaks[peak_ind][1]))
@@ -310,7 +317,7 @@ class FindMaterial(object):
         peak = spectrum[peak_indices[0][0]:peak_indices[0][-1]]
         peak_max = np.max(peak)
         peak_present = False
-        if peak_max > mean_non_peaks+5*stdev_non_peaks:
+        if peak_max > mean_non_peaks+3*stdev_all:
             peak_present = True
         return peak_present, peak_max
 

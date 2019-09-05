@@ -39,13 +39,13 @@ class Matches(object):
         self.med_confidence = []
 
     def add_match(self, material, confidence, spectrum, conv_peaks, peak_data, x, y):
+        print("adding match, %d" % (len(self.matches)))
         match = Match(material, confidence, spectrum, conv_peaks, peak_data, x, y)
-        if match.peak_ratio > 0.9: # hack to avoid contaminant..... 
-            self.matches.append(match)
-            if confidence > self.high_thresh:
+        self.matches.append(match)
+        if confidence > self.high_thresh:
                 self.high_confidence.append(len(self.matches) -1)
                 self.med_confidence.append(len(self.matches) -1)    
-            elif confidence > self.med_thresh:
+        elif confidence > self.med_thresh:
                 self.med_confidence.append(len(self.matches) -1)
 
     
