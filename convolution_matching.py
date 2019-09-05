@@ -44,7 +44,8 @@ d[deriv_order] = 1
 d = np.diff(d, n=deriv_order)
 n = 951
 k = len(d)
-s = float(1e4) # smoothness param - 1e5 better than 1e6
+# fiddle with this carefully
+s = float(1e6) 
 
 # Here be dragons: essentially we're faking a big banded matrix D,
 # doing s * D.T.dot(D) with it, then taking the upper triangular bands.
@@ -208,21 +209,23 @@ class FindMaterial(object):
         spectrum = self.spectra[index]
         # check proposed match by comaring mean of peak region to mean of non peak region
         # this assumes peaks are close enough together to be treated as one block
-        # not robust against cosmic rays
-        max_peaks = np.partition(spectrum[peak_start:peak_end], -2)[-2] # second largest, to avoid cosmic rays being max
+        max_peaks = np.partition(spectrum[peak_start:peak_end], -3)[-3] # second largest, to avoid cosmic rays being max
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_all = np.std(spectrum)
+        # try stdev non peaks again
+        stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
         if max_peaks > mean_non_peaks+3*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_all, spectrum)
             if peaks > 0:
                 if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, valid for GO peaks
                     # calculate how far beyond non peak mean as a confidence measure
-                    if max_peaks < (10*stdev_all+mean_non_peaks):
-                        confidence = (100.*max_peaks)/(2000+mean_non_peaks)
+                    if max_peaks < (10*stdev_non_peaks+mean_non_peaks):
+                        # larger stdev is better, but makes confidence score smaller!!
+                        confidence = (100.*max_peaks)/(10*stdev_non_peaks+mean_non_peaks)
                     else:
                         confidence = 100
-                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
+                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " stdev non peaks: ", stdev_non_peaks, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
                     plt.plot(spectrum)
                     plt.show()
                     return True, confidence, peak_data
@@ -238,6 +241,7 @@ class FindMaterial(object):
             to_match = self.prepare_data(index)
             template = self.material.template
             conv = scipy.signal.fftconvolve(to_match, template)
+            # find peaks in convolution that are as wide as expected of a match, and 'sufficiently' prominent.
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0], [0]
@@ -253,7 +257,7 @@ class FindMaterial(object):
         number_locations = len(self.spectra)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
-        for i in range(42300, 43300):
+        for i in range(number_locations):
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
             match, con, conv_peaks, peak_data = self.is_match(i)

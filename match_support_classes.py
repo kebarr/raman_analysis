@@ -29,7 +29,7 @@ class Match(object):
         return {'confidence': self.confidence, 'spectrum': self.spectrum, 'x' : self.x, 'y': self.y, 'peak_ratio':self.peak_ratio, 'peak_data': self.peak_data}
 
 class Matches(object):
-    def __init__(self, filename, material, med_thresh=31, high_thresh=50): 
+    def __init__(self, filename, material, med_thresh=31, high_thresh=70): 
         self.filename = filename
         self.material = material
         self.med_thresh = med_thresh
