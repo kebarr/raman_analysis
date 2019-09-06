@@ -8,7 +8,7 @@
     {% if number_matches_med %}
     <blockquote>
         
-        Found {{all_matches}} locations out of {{number_locations}} potentially positive for {{material}} in {{filename}}, {{number_matches_med}} with medium confidence, {{number_matches_high}} with high confidence.
+        Found {{all_matches}} locations out of {{number_locations}} potentially positive for {{material}} in {{filename}}, {{number_matches_med}} with medium confidence, {{number_matches_high}} with high confidence. The confidence is based on a scaled z score.
         <!-- TODO: include confidence values!!!! -->
             {% if baseline_example is defined %}
             <div>
@@ -52,7 +52,7 @@
                                 <td id="match2_location">({{match2.x}}, {{match2.y}})</td> 
                         </tr>
                         <tr>
-                          <td>Confidence score</td>
+                          <td>Z score</td>
                           <td id="match1_confidence">{{match1.confidence}}</td> 
                           <td id="match2_confidence">{{match2.confidence}}</td> 
                         </tr>
@@ -250,3 +250,12 @@
 <script src="js/cors/jquery.xdr-transport.js"></script>
 <![endif]-->
 {% endblock %}
+
+<!-- 
+    for selecting area of image - just download image, and say how many at what confidence inside and outside selected region
+    https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Using_images
+https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Compositing
+https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations
+https://stackoverflow.com/questions/2368784/draw-on-html5-canvas-using-a-mouse
+http://jsfiddle.net/ghostoy/wTmFE/1/ for how to draw a line on a canvas
+-->

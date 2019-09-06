@@ -39,7 +39,6 @@ class Matches(object):
         self.med_confidence = []
 
     def add_match(self, material, confidence, spectrum, conv_peaks, peak_data, x, y):
-        print("adding match, %d" % (len(self.matches)))
         match = Match(material, confidence, spectrum, conv_peaks, peak_data, x, y)
         self.matches.append(match)
         if confidence > self.high_thresh:
@@ -83,13 +82,13 @@ class MatchImage(object):
     def add_value_to_image(self, match):
         con = match.confidence
         # scale it manually to increase contrast
-        if con > 70:
+        if con > 60:
             contrast = 100
-        elif con > 60:
+        elif con > 50:
             contrast = 20
-        elif con > 45:
+        elif con > 35:
             contrast = 10 
-        elif con > 30:
+        elif con > 20:
             contrast = 5
         else:
             contrast = 1 

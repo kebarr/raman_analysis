@@ -12,9 +12,6 @@ import scipy
 from sklearn import preprocessing
 import collections
 import pickle
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 import math
 
 from scipy.linalg import solveh_banded
@@ -146,9 +143,7 @@ class FindMaterial(object):
         # should be better way to do this, but i can't find it
         shifts = np.array([0 for i in range(len(data.columns[2:]))])
         self.spectra = data.values[:,2:]
-        print("spec start: ", self.spectra[0][:5])
         self.positions = list(zip(data.x, data.y)) # can probably change this to unnamed 0 and 1 to cut out rename
-        print("positions: ", self.positions[:2])
         for i, col in enumerate(data.columns[2:]):
             shifts[i] = float(col)
         self.shifts = shifts
@@ -244,9 +239,6 @@ class FindMaterial(object):
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0], [0]
             elif len(conv_peaks[0]) > 0:
-                print("match")
-                #print("conv peaks: ", conv_peaks)
-                #print("peak data: ", peak_data)
                 return True, con, conv_peaks, peak_data
         return False, 0, [0], [0]
 
