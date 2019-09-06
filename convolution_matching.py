@@ -15,7 +15,7 @@ import pickle
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+import math
 
 from scipy.linalg import solveh_banded
 from PIL import Image
@@ -213,6 +213,9 @@ class FindMaterial(object):
         # cut off first bit cos there's some weirdness in Cyrills data.
         mean_non_peaks = (np.mean(spectrum[200:self.peak_indices[0][0]]) + np.mean(spectrum[self.peak_indices[0][-1]:]))*0.5 + 50
         stdev_all = np.std(spectrum)
+        mean_peaks = np.mean(spectrum[peak_start:peak_end])
+        stdev_peaks = np.std(spectrum[peak_start:peak_end])
+        mean_all = np.mean(spectrum)
         # try stdev non peaks again
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
         if max_peaks > mean_non_peaks+3*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
@@ -225,7 +228,25 @@ class FindMaterial(object):
                         confidence = (100.*max_peaks)/(10*stdev_non_peaks+mean_non_peaks)
                     else:
                         confidence = 100
-                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " stdev non peaks: ", stdev_non_peaks, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
+                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " stdev non peaks: ", stdev_non_peaks, " stdev peaks: ", stdev_peaks, " mean peaks ", mean_peaks, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
+                    #print((max_peaks - (mean_non_peaks + 5*stdev_non_peaks)+500)*(1/15))
+                    #print(((max_peaks+stdev_peaks)/(10*stdev_non_peaks+mean_non_peaks))) # - possible
+                    #print(100.*(max_peaks+mean_peaks)/(10*stdev_non_peaks+mean_non_peaks))
+                    #print(np.log10((mean_peaks)/(10*stdev_non_peaks+mean_non_peaks)))
+                    #print(100.*(max_peaks+stdev_peaks)/((stdev_non_peaks+mean_non_peaks)**2))
+                    #print(100.*(max_peaks+mean_peaks)/((stdev_non_peaks+mean_non_peaks)**2))as below
+                    #print(100.*(mean_peaks)/((stdev_non_peaks+mean_non_peaks)**2))- increases at one point when it should decrease
+                    #print((max_peaks-mean_non_peaks)/(5*stdev_non_peaks))
+                    #print(mean_peaks-mean_non_peaks)
+                    #print(np.log10(mean_peaks/mean_non_peaks))
+                    #print("z score: ", (mean_peaks - mean_all)/stdev_all)
+                    #print("z score max: ", (max_peaks - mean_all)/stdev_all)
+                    print("z score: ", (mean_peaks - mean_non_peaks)/stdev_non_peaks)
+                    print("z score max: ", (max_peaks - mean_non_peaks)/stdev_non_peaks)
+                    print("z score percentage: ", 0.5*(math.erf(((mean_peaks - mean_non_peaks)/stdev_non_peaks)/(2**.5)) + 1))
+                    print("z score percentage max: ", 0.5*(math.erf(((max_peaks - mean_non_peaks)/stdev_non_peaks)/(2**.5)) + 1))
+                    print("z score naive scaling: ", 15*(mean_peaks - mean_non_peaks)/stdev_non_peaks) # this is the best
+                    print("z score max naive scaling: ", 15*(max_peaks - mean_non_peaks)/stdev_non_peaks)
                     plt.plot(spectrum)
                     plt.show()
                     return True, confidence, peak_data
