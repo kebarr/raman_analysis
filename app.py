@@ -157,7 +157,7 @@ def get_example_matches(fm, confidence="medium", number_to_plot=2):
     m2 = match2.spectrum
     ymax = np.max([np.max(m1), np.max(m2)]) + 50
     #string = '%d matches found' % number_matches
-    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, sharey=True, figsize=(13, 5))
+    fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, figsize=(13, 5))
     plt.ylim(ymin=-200, ymax=ymax)
     ax1.set(xlabel = 'Shift (cm$^{-1}$)')
     ax1.set(ylabel='Intensity')

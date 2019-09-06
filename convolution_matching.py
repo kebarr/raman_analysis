@@ -157,6 +157,7 @@ class FindMaterial(object):
         #td.columns[index] is wavelength at position index
         if self.subtract_baseline == True:
            self.subtract_baseline_data()
+        self.spectra = np.apply_along_axis(scipy.ndimage.median_filter, 1, self.spectra, 8)
         print("successfully loaded data")
         # not really any restrictions on size/shape of image so can't really do any sanity checks here.
         self.len_x_0 = len(data.loc[data["x"] == data.x[0]])
@@ -218,37 +219,13 @@ class FindMaterial(object):
         mean_all = np.mean(spectrum)
         # try stdev non peaks again
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
-        if max_peaks > mean_non_peaks+3*stdev_all:# be quite forgiving as cosmic rays etc will mess it up
+        if max_peaks > mean_non_peaks+3*stdev_all:
             peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_all, spectrum)
             if peaks > 0:
                 if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, valid for GO peaks
                     # calculate how far beyond non peak mean as a confidence measure
-                    if max_peaks < (10*stdev_non_peaks+mean_non_peaks):
-                        # larger stdev is better, but makes confidence score smaller!!
-                        confidence = (100.*max_peaks)/(10*stdev_non_peaks+mean_non_peaks)
-                    else:
-                        confidence = 100
-                    print("match: ", index, " con: ", confidence, " stdev: ", stdev_all, " stdev non peaks: ", stdev_non_peaks, " stdev peaks: ", stdev_peaks, " mean peaks ", mean_peaks, " max_peaks", max_peaks, " mean non peaks ", mean_non_peaks)
-                    #print((max_peaks - (mean_non_peaks + 5*stdev_non_peaks)+500)*(1/15))
-                    #print(((max_peaks+stdev_peaks)/(10*stdev_non_peaks+mean_non_peaks))) # - possible
-                    #print(100.*(max_peaks+mean_peaks)/(10*stdev_non_peaks+mean_non_peaks))
-                    #print(np.log10((mean_peaks)/(10*stdev_non_peaks+mean_non_peaks)))
-                    #print(100.*(max_peaks+stdev_peaks)/((stdev_non_peaks+mean_non_peaks)**2))
-                    #print(100.*(max_peaks+mean_peaks)/((stdev_non_peaks+mean_non_peaks)**2))as below
-                    #print(100.*(mean_peaks)/((stdev_non_peaks+mean_non_peaks)**2))- increases at one point when it should decrease
-                    #print((max_peaks-mean_non_peaks)/(5*stdev_non_peaks))
-                    #print(mean_peaks-mean_non_peaks)
-                    #print(np.log10(mean_peaks/mean_non_peaks))
-                    #print("z score: ", (mean_peaks - mean_all)/stdev_all)
-                    #print("z score max: ", (max_peaks - mean_all)/stdev_all)
-                    print("z score: ", (mean_peaks - mean_non_peaks)/stdev_non_peaks)
-                    print("z score max: ", (max_peaks - mean_non_peaks)/stdev_non_peaks)
-                    print("z score percentage: ", 0.5*(math.erf(((mean_peaks - mean_non_peaks)/stdev_non_peaks)/(2**.5)) + 1))
-                    print("z score percentage max: ", 0.5*(math.erf(((max_peaks - mean_non_peaks)/stdev_non_peaks)/(2**.5)) + 1))
-                    print("z score naive scaling: ", 15*(mean_peaks - mean_non_peaks)/stdev_non_peaks) # this is the best
-                    print("z score max naive scaling: ", 15*(max_peaks - mean_non_peaks)/stdev_non_peaks)
-                    plt.plot(spectrum)
-                    plt.show()
+                    confidence = 15*(mean_peaks - mean_non_peaks)/stdev_non_peaks
+                    confidence = confidence if confidence < 100 else 100
                     return True, confidence, peak_data
                 else:
                     return False, 0, [0]
