@@ -236,10 +236,16 @@ class FindMaterial(object):
             conv = scipy.signal.fftconvolve(to_match, template)
             # find peaks in convolution that are as wide as expected of a match, and 'sufficiently' prominent.
             conv_peaks  = scipy.signal.find_peaks(conv, width = [118,self.max_width], prominence = 30)
+            print("conv_peaks ", conv_peaks)
+            print("peak data ", peak_data, peak_data[0][0], peak_data[1][0], (peak_data[0][0] == True and peak_data[1][0] == True))
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0], [0]
             elif len(conv_peaks[0]) > 0:
-                return True, con, conv_peaks, peak_data
+                try: 
+                    if (conv_peaks[1]["widths"][0] > 350 or (peak_data[0][0] == True and peak_data[1][0] == True)):
+                        return True, con, conv_peaks, peak_data
+                except:
+                    pass
         return False, 0, [0], [0]
 
     def find_matches(self):
