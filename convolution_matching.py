@@ -241,11 +241,11 @@ class FindMaterial(object):
             if len(conv_peaks[0]) == 0:
                 return False, 0, [0], [0]
             elif len(conv_peaks[0]) > 0:
-                try: 
-                    if (conv_peaks[1]["widths"][0] > 350 or (peak_data[0][0] == True and peak_data[1][0] == True)):
+                #try: 
+                #    if (conv_peaks[1]["widths"][0] > 350 or (peak_data[0][0] == True and peak_data[1][0] == True)):
                         return True, con, conv_peaks, peak_data
-                except:
-                    pass
+                #except:
+                #    pass
         return False, 0, [0], [0]
 
     def find_matches(self):
@@ -259,7 +259,7 @@ class FindMaterial(object):
             match, con, conv_peaks, peak_data = self.is_match(i)
             if match == True:
                 self.matches.add_match(self.material, con, self.spectra[i], conv_peaks, peak_data, self.positions[i][0], self.positions[i][1])
-        print("Finished finding matches, found %d locations positive for %s" % (len(self.matches.matches), self.material_name))
+        print("Finished finding matches, found %d locations potentially positive for %s" % (len(self.matches.matches), self.material_name))
 
     def get_condifence_matches(self, thresh='medium'):
         if thresh=='medium':

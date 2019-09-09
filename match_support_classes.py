@@ -40,12 +40,13 @@ class Matches(object):
 
     def add_match(self, material, confidence, spectrum, conv_peaks, peak_data, x, y):
         match = Match(material, confidence, spectrum, conv_peaks, peak_data, x, y)
-        self.matches.append(match)
-        if confidence > self.high_thresh:
-                self.high_confidence.append(len(self.matches) -1)
-                self.med_confidence.append(len(self.matches) -1)    
-        elif confidence > self.med_thresh:
-                self.med_confidence.append(len(self.matches) -1)
+        if match.peak_ratio > 1.05:
+            self.matches.append(match)
+            if confidence > self.high_thresh:
+                    self.high_confidence.append(len(self.matches) -1)
+                    self.med_confidence.append(len(self.matches) -1)    
+            elif confidence > self.med_thresh:
+                    self.med_confidence.append(len(self.matches) -1)
 
     
         
