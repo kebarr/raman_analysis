@@ -3,13 +3,14 @@ from PIL import Image
 
 # container for match stuff to improve readability
 class Match(object):
-    def __init__(self, material, confidence, spectrum, peak_data, x, y):
+    def __init__(self, material, confidence, spectrum, peak_data, x, y, i):
         self.material = material
         self.confidence = confidence
         self.spectrum = spectrum
         self.peak_data = peak_data
         self.x = x
         self.y = y
+        self.i = i
         #self.peak_ratio = self.calculate_peak_ratio()
 
     def calculate_peak_ratio(self):
@@ -37,8 +38,8 @@ class Matches(object):
         self.high_confidence = []
         self.med_confidence = []
 
-    def add_match(self, material, confidence, spectrum, peak_data, x, y):
-        match = Match(material, confidence, spectrum, peak_data, x, y)
+    def add_match(self, material, confidence, spectrum, peak_data, x, y, i):
+        match = Match(material, confidence, spectrum, peak_data, x, y, i)
         self.matches.append(match)
         #if match.peak_ratio > 1.05:
         #    self.matches.append(match)

@@ -13,6 +13,9 @@ from sklearn import preprocessing
 import collections
 import pickle
 import math
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 from scipy.linalg import solveh_banded
 from PIL import Image
@@ -106,6 +109,7 @@ class FindMaterial(object):
         self.template =  np.array(self.material.template)[90:-105]
         self.template /= np.sum(self.template)
         self.matches = Matches(filename, material_name)
+        print(self.subtract_baseline)
         if os.path.exists(self.pickle_filename):
             self.load()
         else:
@@ -148,6 +152,8 @@ class FindMaterial(object):
         self.positions = list(zip(data.x, data.y)) # can probably change this to unnamed 0 and 1 to cut out rename
         for i, col in enumerate(data.columns[2:]):
             shifts[i] = float(col)
+        plt.plot(self.spectra[30])
+        plt.show()
         self.shifts = shifts
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
@@ -176,19 +182,29 @@ class FindMaterial(object):
             raise ValueError("Shifts of data set do not include expected peak shifts")
         # to rule out possibility of getting other d peak and weird stuff at beginning,
         # do +- 200 if powwible
+        print(self.peak_indices)
         self.lowest_index = self.peak_indices[0][0]
-        self.highest_index = self.peak_indices[0][-1] 
+        self.highest_index = self.peak_indices[0][-1] +25
+        print("li: ", self.lowest_index)
+        print("hi: ", self.highest_index)
         # guess at reasonable max width
         self.max_width = self.highest_index - self.lowest_index
 
 
 
     def prepare_data(self, index):
-        d = self.spectra[index][self.lowest_index:self.highest_index]
-        d = d.reshape((len(d), 1))
-        min_max_scaler = preprocessing.MinMaxScaler()
-        d_scaled = min_max_scaler.fit_transform(d)
-        d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))]
+        #d = self.spectra[index]
+        #print(len(d))
+        #plt.plot(d)
+        #plt.show()
+        #d = d.reshape((len(d), 1))
+        #print(len(d))
+        #min_max_scaler = preprocessing.MinMaxScaler()
+        #d_scaled = min_max_scaler.fit_transform(d)
+        #print(len(d_scaled))
+        #d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))][self.lowest_index:self.highest_index]
+        d = np.copy(self.spectra[index])
+        d_final = d[self.lowest_index:self.highest_index]
         d_final /= np.sum(d_final)
         return d_final
      
@@ -225,31 +241,76 @@ class FindMaterial(object):
 
     def is_match(self, index):
         to_match = self.prepare_data(index)
+        #print(to_match.shape)
+        #print(self.template.shape)
+        #plt.plot(to_match)
+        #plt.plot(self.template)
+        #plt.show()
         conv = scipy.signal.fftconvolve(to_match, self.template)
         #print("conv max: ", np.max(conv))
-        if np.max(conv)> 0.0084 and np.where(conv == np.max(conv))[0][0] < 129 and  np.where(conv == np.max(conv))[0][0] > 120:
-            peaks = scipy.signal.find_peaks(to_match, prominence=0.008, width=8)
+        if np.max(conv)> 0.007:# and np.where(conv == np.max(conv))[0][0] < 129 and  np.where(conv == np.max(conv))[0][0] > 120:
+            peaks = scipy.signal.find_peaks(to_match, prominence=0.005, width=8)
             peak1_int = peaks[0][np.where(peaks[0] >10)]
             peak2_int = peaks[0][np.where(peaks[0] >70)]
             peak1_final = peak1_int[np.where(peak1_int <50)]
             peak2_final = peak2_int[np.where(peak2_int <130)]
             if len(peak1_final) != 0 and len(peak2_final) != 0:
+                #print("Match !!!!!!! peaks, ", peaks, " ", index)
+                #print(peak1_final)
+                #print(peak2_final)
+                #print(np.max(conv))
+                #plt.plot(to_match)
+                #plt.plot(self.template)
+                #plt.show()              
                 return True, conv, peaks
+            #print("peaks, ", peaks, " ", index)
+            #print(peak1_final)
+            #print(peak2_final)
+            #print(np.max(conv))
+            #plt.plot(self.template)
+            #plt.plot(to_match)
+            #plt.show()
+            return False, conv, peaks
         return False, [], []
 
 
     def find_matches(self):
+        print("max temp v temp: ", np.max(scipy.signal.fftconvolve(self.template, self.template)))
+        partial = 0
         self.find_indices_of_peak_shifts()
         number_locations = len(self.spectra)
         print("Searching %d locations for %s" % (number_locations, self.material_name))
         update_flag = int(number_locations/25) # how often to update user
+        check_m = 0
         for i in range(number_locations):
+            if self.check_match(i)[0]:
+                check_m += 1
+                #print("heck match %d" % (i))
+                #to_match = self.prepare_data(i)
+                #conv = scipy.signal.fftconvolve(to_match, self.template)
+                #print(np.max(conv))
+                #print(np.where(conv == np.max(conv)))
+                #print(to_match.shape)
+                #print(self.spectra[i].shape)
+                #print(self.template.shape)
+                #plt.plot(self.spectra[i])
+                #plt.show()
+                #plt.plot(to_match)
+                #plt.plot(self.template)
+                #plt.show()
+                match, con, peak_data = self.is_match(i)
+                if match == True:
+                    self.matches.add_match(self.material, con, self.spectra[i], peak_data, self.positions[i][0], self.positions[i][1], i)
+                elif len(con) !=0:
+                    pass
+                    #partial += 1
+                    #print("pd ",  peak_data)
+                    #print("max ", np.max(con))
+                    #print("where ", np.where(con == np.max(con)))
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-            match, con, peak_data = self.is_match(i)
-            if match == True:
-                self.matches.add_match(self.material, con, self.spectra[i], peak_data, self.positions[i][0], self.positions[i][1])
-        print("Finished finding matches, found %d locations potentially positive for %s" % (len(self.matches.matches), self.material_name))
+        print(check_m)
+        print("Finished finding matches, found %d locations potentially positive for %s, %d partial matches" % (len(self.matches.matches), self.material_name, partial))
 
     def get_condifence_matches(self, thresh='medium'):
         if thresh=='medium':
