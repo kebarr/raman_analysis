@@ -3,15 +3,14 @@ from PIL import Image
 
 # container for match stuff to improve readability
 class Match(object):
-    def __init__(self, material, confidence, spectrum, conv_peaks, peak_data, x, y):
+    def __init__(self, material, confidence, spectrum, peak_data, x, y):
         self.material = material
         self.confidence = confidence
         self.spectrum = spectrum
-        self.conv_peaks = conv_peaks
         self.peak_data = peak_data
         self.x = x
         self.y = y
-        self.peak_ratio = self.calculate_peak_ratio()
+        #self.peak_ratio = self.calculate_peak_ratio()
 
     def calculate_peak_ratio(self):
         number_peaks = len(self.material.peaks)
@@ -38,15 +37,16 @@ class Matches(object):
         self.high_confidence = []
         self.med_confidence = []
 
-    def add_match(self, material, confidence, spectrum, conv_peaks, peak_data, x, y):
-        match = Match(material, confidence, spectrum, conv_peaks, peak_data, x, y)
-        if match.peak_ratio > 1.05:
-            self.matches.append(match)
-            if confidence > self.high_thresh:
-                    self.high_confidence.append(len(self.matches) -1)
-                    self.med_confidence.append(len(self.matches) -1)    
-            elif confidence > self.med_thresh:
-                    self.med_confidence.append(len(self.matches) -1)
+    def add_match(self, material, confidence, spectrum, peak_data, x, y):
+        match = Match(material, confidence, spectrum, peak_data, x, y)
+        self.matches.append(match)
+        #if match.peak_ratio > 1.05:
+        #    self.matches.append(match)
+        #    if confidence > self.high_thresh:
+        #            self.high_confidence.append(len(self.matches) -1)
+        #            self.med_confidence.append(len(self.matches) -1)    
+        #    elif confidence > self.med_thresh:
+        #            self.med_confidence.append(len(self.matches) -1)
 
     
         
