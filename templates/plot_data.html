@@ -118,7 +118,10 @@
                 <input id="sb" type="hidden" name="sb" value = {{subtract_baseline}}>
             </form>
             <div id="for-image">
-            </div>
+            <canvas id="uploaded_image" width="800" height="600"></canvas>
+            <button onclick="submit()">Submit</button>
+        </div>
+            <div id="success"> </div>
             <div id="for-button" style="display:none;"> 
                     <form id="download_image"  action="//127.0.0.1:5000/download_image" method="post" enctype="multipart/form-data">
                         <input type="hidden" id = "o" name="output_filename">
@@ -154,6 +157,89 @@
   </script>
 
     <script type=text/javascript>
+    let path = [];
+
+function draw(img_src) {
+    console.log("in draw")
+  var canvas = document.getElementById('uploaded_image');
+  if (!canvas.getContext) {
+      throw new Error("Cannot get canvas Context");
+  }
+  var ctx = canvas.getContext('2d');
+  const image = new Image(0,0);
+  image.onload = function() {
+  ctx.drawImage(image, 0, 0);
+};
+  image.src = "data:image/png;base64,"+img_src
+
+  image.onload = drawImageActualSize; // Draw when image has loaded
+
+  function drawImageActualSize() {
+    // Use the intrinsic size of image in CSS pixels for the canvas element
+    canvas.width = this.naturalWidth;
+    canvas.height = this.naturalHeight;
+
+    // Will draw the image as 300x227, ignoring the custom size of 60x45
+    // given in the constructor
+    ctx.drawImage(this, 0, 0);
+
+    // To use the custom size we'll have to specify the scale parameters
+    // using the element's width and height properties - lets draw one
+    // on top in the corner:
+    ctx.drawImage(this, 0, 0, this.width, this.height);
+  }
+
+  let drawing = false;
+  let x, y;
+  canvas.addEventListener("mousemove", function (e) {
+    if (!drawing) { return; }
+    console.log("Mousemove: %o", e);
+    prevX = x;
+    prevY = y;
+    x = e.clientX - canvas.offsetLeft;
+    y = e.clientY - canvas.offsetTop;
+
+    draw(prevX, prevY, x, y)
+    path.push([prevX, prevY, x, y])
+  }, false);
+  canvas.addEventListener("mousedown", function (e) {
+    drawing = true;
+  }, false);
+  canvas.addEventListener("mouseup", function (e) {
+    drawing = false;
+  }, false);
+  canvas.addEventListener("mouseout", function (e) {
+      console.debug("mouseout");
+  }, false);
+
+  function draw(sx, sy, x, y) {
+    console.debug("Drawing from (%d, %d) to (%d, %d)", sx, sy, x, y);
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.closePath();
+  }
+}
+
+function submit() {
+                  var b = document.getElementById("success")
+                  b.innerHTML=path
+                  $.ajax({
+                  type: 'POST',
+                  url: '/matches_in_region',
+                  data: path,
+                  success: function(data) {
+
+                  var b = document.getElementById("success")
+                  b.style.display ="block"
+                  console.log('Success!');
+          },
+      });
+  }
+
                 $(function() {
                     $('#upload-file-btn').click(function() {
                          var form_data = new FormData($('#upload-file')[0]);
@@ -165,10 +251,6 @@
                         cache: false,
                         processData: false,
                         success: function(data) {
-                        img = document.createElement("img");
-                        img.src = "data:image/png;base64,"+data.image
-                        var elem = document.getElementById("for-image")
-                        elem.appendChild(img)
                         // add output filename to form for allowing user to download image
                         filename = document.getElementById("o")
                         console.log(data)
@@ -180,6 +262,7 @@
                         //b.appendChild('<button  id="download-image-btn" type="button">Download image of match positions</button>')
                         var b = document.getElementById("for-button")
                         b.style.display ="block"
+                        draw(data.image)
                     console.log('Success!');
                 },
             });
