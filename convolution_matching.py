@@ -223,11 +223,6 @@ class FindMaterial(object):
 
     def is_match(self, index):
         to_match = self.prepare_data(index)
-        #print(to_match.shape)
-        #print(self.template.shape)
-        #plt.plot(to_match)
-        #plt.plot(self.template)
-        #plt.show()
         conv = scipy.signal.fftconvolve(to_match, self.template)
         #print("conv max: ", np.max(conv))
         if np.max(conv)> 0.0065:# and np.where(conv == np.max(conv))[0][0] < 129 and  np.where(conv == np.max(conv))[0][0] > 120:
@@ -237,22 +232,8 @@ class FindMaterial(object):
             peak1_final = peak1_int[np.where(peak1_int <50)]
             peak2_final = peak2_int[np.where(peak2_int <130)]
             if len(peak1_final) != 0 and len(peak2_final) != 0:
-                if to_match[peak1_final[0]] > to_match[peak2_final[0]]:
-                    #print("Match !!!!!!! peaks, ", peaks, " ", index)
-                    #print(peak1_final)
-                    #print(peak2_final)
-                    #print(np.max(conv))
-                    #plt.plot(to_match)
-                    #plt.plot(self.template)
-                    #plt.show()              
-                    return True, conv, peaks
-            #print("peaks, ", peaks, " ", index)
-            #print(peak1_final)
-            #print(peak2_final)
-            #print(np.max(conv))
-            #plt.plot(self.template)
-            #plt.plot(to_match)
-            #plt.show()
+                if to_match[peak1_final[0]] > to_match[peak2_final[0]]:             
+                    return True, conv, [to_match[peak1_final[0]], to_match[peak2_final[0]]]
             return False, conv, peaks
         return False, [], []
 
@@ -265,33 +246,17 @@ class FindMaterial(object):
         update_flag = int(number_locations/25) # how often to update user
         check_m = 0
         for i in range(number_locations):
-            if self.check_match(i)[0]:
+            potential_match, con = self.check_match(i)
+            if potential_match:
                 check_m += 1
-                #print("heck match %d" % (i))
-                #to_match = self.prepare_data(i)
-                #conv = scipy.signal.fftconvolve(to_match, self.template)
-                #print(np.max(conv))
-                #print(np.where(conv == np.max(conv)))
-                #print(to_match.shape)
-                #print(self.spectra[i].shape)
-                #print(self.template.shape)
-                #plt.plot(self.spectra[i])
-                #plt.show()
-                #plt.plot(to_match)
-                #plt.plot(self.template)
-                #plt.show()
-                match, con, peak_data = self.is_match(i)
+                match, conv, peak_data = self.is_match(i)
                 if match == True:
                     self.matches.add_match(self.material, con, self.spectra[i], peak_data, self.positions[i][0], self.positions[i][1], i)
-                elif len(con) !=0:
-                    pass
-                    #partial += 1
-                    #print("pd ",  peak_data)
-                    #print("max ", np.max(con))
-                    #print("where ", np.where(con == np.max(con)))
+                if len(conv) != 0:
+                    partial += 1
             if i%update_flag == 0:
                 print("Tested %d locations, found %d matches" % (i, len(self.matches.matches)))
-        print(check_m)
+        print("%d spectra made it though initial filtering " % (check_m))
         print("Finished finding matches, found %d locations potentially positive for %s, %d partial matches" % (len(self.matches.matches), self.material_name, partial))
 
     def get_condifence_matches(self, thresh='medium'):
@@ -334,25 +299,4 @@ class FindMaterial(object):
             mi.add_value_to_image(match)
         mi.save_image(output_filename)
 
-    def get_peak_heights(self, mean_non_peaks, stdev_all, spectrum):
-        results = []
-        peaks = 0
-        for peak in range(len(self.material.peaks)):
-            peak_present, peak_max = self.peak_at_location(peak, mean_non_peaks, stdev_all, spectrum)
-            results.append((peak_present, peak_max))
-            if peak_present:
-                peaks += 1
-        return results, peaks
-
-    def peak_at_location(self, peak_ind, mean_non_peaks, stdev_all, spectrum):
-        # i need index of start of peak and index of end of peak
-        # data has been scaled and we don't know by how much....
-        cond = ((self.shifts > self.material.peaks[peak_ind][0]) & (self.shifts < self.material.peaks[peak_ind][1]))
-        peak_indices = np.where(cond)
-        peak = spectrum[peak_indices[0][0]:peak_indices[0][-1]]
-        peak_max = np.max(peak)
-        peak_present = False
-        if peak_max > mean_non_peaks+3*stdev_all:
-            peak_present = True
-        return peak_present, peak_max
 

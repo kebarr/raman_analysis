@@ -11,19 +11,10 @@ class Match(object):
         self.x = x
         self.y = y
         self.i = i
-        #self.peak_ratio = self.calculate_peak_ratio()
+        self.calculate_peak_ratio()
 
     def calculate_peak_ratio(self):
-        number_peaks = len(self.material.peaks)
-        peaks_present = 0
-        peak_ratio = 0
-        for peak in self.peak_data:
-            if peak[0]:
-                peaks_present +=1
-        if number_peaks == 2 and peaks_present == number_peaks:
-            # not sure how to do this if more than 2 peaks
-            peak_ratio = np.float(self.peak_data[0][1])/self.peak_data[1][1]
-        return peak_ratio
+        self.peak_ratio  = np.float(self.peak_data[0])/self.peak_data[1]
 
     def to_dict(self):
         return {'confidence': self.confidence, 'spectrum': self.spectrum, 'x' : self.x, 'y': self.y, 'peak_ratio':self.peak_ratio, 'peak_data': self.peak_data}
@@ -41,13 +32,11 @@ class Matches(object):
     def add_match(self, material, confidence, spectrum, peak_data, x, y, i):
         match = Match(material, confidence, spectrum, peak_data, x, y, i)
         self.matches.append(match)
-        #if match.peak_ratio > 1.05:
-        #    self.matches.append(match)
-        #    if confidence > self.high_thresh:
-        #            self.high_confidence.append(len(self.matches) -1)
-        #            self.med_confidence.append(len(self.matches) -1)    
-        #    elif confidence > self.med_thresh:
-        #            self.med_confidence.append(len(self.matches) -1)
+        if confidence > self.high_thresh:
+            self.high_confidence.append(len(self.matches) -1)
+            self.med_confidence.append(len(self.matches) -1)    
+        elif confidence > self.med_thresh:
+            self.med_confidence.append(len(self.matches) -1)
 
     
         
