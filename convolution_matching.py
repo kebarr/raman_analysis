@@ -13,10 +13,6 @@ from sklearn import preprocessing
 import collections
 import pickle
 import math
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-
 from scipy.linalg import solveh_banded
 from PIL import Image
 from match_support_classes import Matches, MatchImage
