@@ -119,13 +119,14 @@
             </form>
             <div id="for-image">
             <canvas id="uploaded_image" width="800" height="600"></canvas>
-            <button onclick="submit()">Submit</button>
+            <button id="compute" onclick="submit()">Submit</button>
         </div>
             <div id="success"> </div>
             <div id="for-button" style="display:none;"> 
                     <form id="download_image"  action="//127.0.0.1:5000/download_image" method="post" enctype="multipart/form-data">
                         <input type="hidden" id = "o" name="output_filename">
                         <button  id="download-image-btn" class="btn btn-primary start" type="submit">Download image of match positions</button>
+                        <button id="compute" class="btn btn-primary start" onclick="submit()">Submit</button>
                     </form>
             </div>
         </blockquote>
@@ -159,20 +160,18 @@
     <script type=text/javascript>
     let path = [];
 
-function draw(img_src) {
+function draw_image(img_src) {
     console.log("in draw")
   var canvas = document.getElementById('uploaded_image');
   if (!canvas.getContext) {
       throw new Error("Cannot get canvas Context");
   }
   var ctx = canvas.getContext('2d');
-  const image = new Image(0,0);
-  image.onload = function() {
-  ctx.drawImage(image, 0, 0);
-};
+  const image = new Image();
+  
   image.src = "data:image/png;base64,"+img_src
-
-  image.onload = drawImageActualSize; // Draw when image has loaded
+   // Draw when image has loaded
+   image.onload =  drawImageActualSize;
 
   function drawImageActualSize() {
     // Use the intrinsic size of image in CSS pixels for the canvas element
@@ -181,7 +180,7 @@ function draw(img_src) {
 
     // Will draw the image as 300x227, ignoring the custom size of 60x45
     // given in the constructor
-    ctx.drawImage(this, 0, 0);
+    //ctx.drawImage(this, 0, 0);
 
     // To use the custom size we'll have to specify the scale parameters
     // using the element's width and height properties - lets draw one
@@ -191,18 +190,31 @@ function draw(img_src) {
 
   let drawing = false;
   let x, y;
+  var rect = canvas.getBoundingClientRect();
   canvas.addEventListener("mousemove", function (e) {
     if (!drawing) { return; }
     console.log("Mousemove: %o", e);
     prevX = x;
     prevY = y;
-    x = e.clientX - canvas.offsetLeft;
-    y = e.clientY - canvas.offsetTop;
+
+// https://stackoverflow.com/questions/3234256/find-mouse-position-relative-to-element
+    var offset = $('#uploaded_image').offset();
+    console.log("offsets:")
+    console.log(offset.left)
+    console.log(offset.top)
+    var x = e.pageX - offset.left;
+    var y = e.pageY - offset.top;
 
     draw(prevX, prevY, x, y)
     path.push([prevX, prevY, x, y])
   }, false);
   canvas.addEventListener("mousedown", function (e) {
+      console.log("x: ")
+      console.log(e.clientX)
+      console.log(canvas.offsetLeft)
+      console.log("y: ")
+      console.log(e.clientY)
+      console.log(canvas.offsetTop)
     drawing = true;
   }, false);
   canvas.addEventListener("mouseup", function (e) {
@@ -217,8 +229,10 @@ function draw(img_src) {
     ctx.beginPath();
     ctx.moveTo(sx, sy);
     ctx.lineTo(x, y);
+    console.log(ctx.strokeStyle);
+    console.log(ctx.lineWidth);
     ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 5;
     ctx.stroke();
     ctx.closePath();
   }
@@ -262,7 +276,7 @@ function submit() {
                         //b.appendChild('<button  id="download-image-btn" type="button">Download image of match positions</button>')
                         var b = document.getElementById("for-button")
                         b.style.display ="block"
-                        draw(data.image)
+                        draw_image(data.image)
                     console.log('Success!');
                 },
             });
