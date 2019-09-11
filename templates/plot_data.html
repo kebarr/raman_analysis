@@ -196,14 +196,18 @@ function draw_image(img_src) {
     console.log("Mousemove: %o", e);
     prevX = x;
     prevY = y;
-
+    console.log("prev:")
+    console.log(x)
+    console.log(y)
 // https://stackoverflow.com/questions/3234256/find-mouse-position-relative-to-element
     var offset = $('#uploaded_image').offset();
-    console.log("offsets:")
-    console.log(offset.left)
-    console.log(offset.top)
-    var x = e.pageX - offset.left;
-    var y = e.pageY - offset.top;
+    //console.log("offsets:")
+    //console.log(offset.left)
+    //console.log(offset.top);
+    //var x = e.pageX;
+    //var y = e.pageY - $(window).scrollTop();
+    var x = e.clientX;
+    var y = e.clientY;
 
     draw(prevX, prevY, x, y)
     path.push([prevX, prevY, x, y])
