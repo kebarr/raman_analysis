@@ -146,14 +146,13 @@ class FindMaterial(object):
         print("reading data from %s to locate %s" % (fname, self.material_name))
         data= pd.read_csv(fname, sep='\t', encoding='utf-8')
         data = data.rename(columns={'Unnamed: 0' : 'x', 'Unnamed: 1' : 'y'})
+        data = data.dropna()
         # should be better way to do this, but i can't find it
         shifts = np.array([0 for i in range(len(data.columns[2:]))])
         self.spectra = data.values[:,2:]
         self.positions = list(zip(data.x, data.y)) # can probably change this to unnamed 0 and 1 to cut out rename
         for i, col in enumerate(data.columns[2:]):
             shifts[i] = float(col)
-        plt.plot(self.spectra[30])
-        plt.show()
         self.shifts = shifts
         #td.x is x coord
         #td.iloc[0][2:] is just data in column 0 (indexes 0 and 1 are x and y coordinates)
@@ -193,16 +192,6 @@ class FindMaterial(object):
 
 
     def prepare_data(self, index):
-        #d = self.spectra[index]
-        #print(len(d))
-        #plt.plot(d)
-        #plt.show()
-        #d = d.reshape((len(d), 1))
-        #print(len(d))
-        #min_max_scaler = preprocessing.MinMaxScaler()
-        #d_scaled = min_max_scaler.fit_transform(d)
-        #print(len(d_scaled))
-        #d_final = [d_scaled[x][0] for x in range(0, len(d_scaled))][self.lowest_index:self.highest_index]
         d = np.copy(self.spectra[index])
         d_final = d[self.lowest_index:self.highest_index]
         d_final /= np.sum(d_final)
@@ -223,21 +212,14 @@ class FindMaterial(object):
         mean_peaks = np.mean(spectrum[peak_start:peak_end])
         stdev_peaks = np.std(spectrum[peak_start:peak_end])
         mean_all = np.mean(spectrum)
-        # try stdev non peaks again
         stdev_non_peaks = np.std(np.concatenate([spectrum[200:self.peak_indices[0][0]], spectrum[self.peak_indices[0][-1]:]]))
-        if max_peaks > mean_non_peaks+3*stdev_all:
-            peak_data, peaks = self.get_peak_heights(mean_non_peaks, stdev_all, spectrum)
-            if peaks > 0:
-                if self.material.name == "graphene_oxide" and peak_data[0] > peak_data[1]: # hack to avoid matching contaminant, valid for GO peaks
-                    # calculate how far beyond non peak mean as a confidence measure
-                    confidence = 15*(mean_peaks - mean_non_peaks)/stdev_non_peaks
-                    confidence = confidence if confidence < 100 else 100
-                    return True, confidence, peak_data
-                else:
-                    return False, 0, [0]
-            return False, 0, [0]
+        #if max_peaks >
+        if max_peaks > mean_non_peaks+3*stdev_non_peaks:
+            confidence = 15*(mean_peaks - mean_non_peaks)/stdev_non_peaks
+            confidence = confidence if confidence < 100 else 100
+            return True, confidence
         else:
-            return False, 0, [0]
+            return False, 0
 
     def is_match(self, index):
         to_match = self.prepare_data(index)
@@ -248,21 +230,22 @@ class FindMaterial(object):
         #plt.show()
         conv = scipy.signal.fftconvolve(to_match, self.template)
         #print("conv max: ", np.max(conv))
-        if np.max(conv)> 0.007:# and np.where(conv == np.max(conv))[0][0] < 129 and  np.where(conv == np.max(conv))[0][0] > 120:
+        if np.max(conv)> 0.0065:# and np.where(conv == np.max(conv))[0][0] < 129 and  np.where(conv == np.max(conv))[0][0] > 120:
             peaks = scipy.signal.find_peaks(to_match, prominence=0.005, width=8)
             peak1_int = peaks[0][np.where(peaks[0] >10)]
             peak2_int = peaks[0][np.where(peaks[0] >70)]
             peak1_final = peak1_int[np.where(peak1_int <50)]
             peak2_final = peak2_int[np.where(peak2_int <130)]
             if len(peak1_final) != 0 and len(peak2_final) != 0:
-                #print("Match !!!!!!! peaks, ", peaks, " ", index)
-                #print(peak1_final)
-                #print(peak2_final)
-                #print(np.max(conv))
-                #plt.plot(to_match)
-                #plt.plot(self.template)
-                #plt.show()              
-                return True, conv, peaks
+                if to_match[peak1_final[0]] > to_match[peak2_final[0]]:
+                    #print("Match !!!!!!! peaks, ", peaks, " ", index)
+                    #print(peak1_final)
+                    #print(peak2_final)
+                    #print(np.max(conv))
+                    #plt.plot(to_match)
+                    #plt.plot(self.template)
+                    #plt.show()              
+                    return True, conv, peaks
             #print("peaks, ", peaks, " ", index)
             #print(peak1_final)
             #print(peak2_final)
@@ -275,7 +258,6 @@ class FindMaterial(object):
 
 
     def find_matches(self):
-        print("max temp v temp: ", np.max(scipy.signal.fftconvolve(self.template, self.template)))
         partial = 0
         self.find_indices_of_peak_shifts()
         number_locations = len(self.spectra)
