@@ -232,11 +232,12 @@ function draw(img_src) {
 
 $(function() {
     $('#select-area-btn').click(function(){
-        console.log(path);
+        console.log(JSON.stringify(path, null, '\t'));
                   $.ajax({
                   type: 'POST',
                   url: '/selectarea',
-                  data: path,
+                  data: JSON.stringify(path, null, '\t'),
+                  contentType: 'application/json;charset=UTF-8',
                   success: function(data) {
                   console.log('Success!');
           },
