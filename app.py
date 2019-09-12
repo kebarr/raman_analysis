@@ -195,12 +195,14 @@ def plot_example_match(fm):
 def select_area():
     if request.method == 'POST':
         print("select are called")
-        print(request)
-        print(request.data.decode('utf-8'))
-        data = np.array(json.loads(request.data)["data"])
+        #print(request)
+        #print(request.data.decode('utf-8'))
+        req_json = json.loads(request.data)
+        print(req_json)
+        data = np.array(json.loads(req_json["data"]))
         print("loaded")
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
-        find_points_in_selected_area(data["data"])
+        find_points_in_selected_area(data)
         return jsonify({"blah": "blah"})
 
 
@@ -208,6 +210,7 @@ def find_points_in_selected_area(data):
     print("called find points")
     xs = np.array([i[0] for i in data])
     ys = np.array([i[1] for i in data])
+    print(xs)
     max_y = np.max(ys)
     min_y = np.min(ys)
     max_x = np.max(xs)
