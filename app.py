@@ -210,14 +210,15 @@ def select_area():
         max_x = fm.x_max - fm.x_0 
         data = scale_points(max_y, max_x, req_json['canvas_height'], req_json['canvas_width'], data)
         print("loaded")
+        # mouse at bottom right corner does not correspond to canvas width and canvas height
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
         find_points_in_selected_area(data, fm.matches.matches)
-        return jsonify({"blah": json.dumps(data)})
+        return jsonify({"blah": json.dumps(list(data))})
 
 def scale_points(max_y, max_x, canvas_height, canvas_width, data):
     print("max x: %d max y %d canvas height %d canvas width %d: " % (max_x, max_y, canvas_height, canvas_width))
-    scale_x = max_x/canvas_width
-    scale_y = max_y/canvas_height
+    scale_x = max_x/canvas_height
+    scale_y = max_y/canvas_width
     print(scale_x, ' ', scale_y)
     data_scaled = np.array([[int(scale_y*d[0]), int(scale_x*d[1])] for d in data])
     return data_scaled
@@ -229,6 +230,8 @@ def find_points_in_selected_area(data, matches):
     xs = np.array([i[0] for i in data])
     ys = np.array([i[1] for i in data])
     print(xs)
+    print("...................@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@.....................S")
+    print(ys)
     max_y = np.max(ys)
     min_y = np.min(ys)
     max_x = np.max(xs)
