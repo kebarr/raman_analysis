@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import scipy
+from scipy import spatial 
 
 import traceback
 
@@ -198,7 +199,6 @@ def select_area():
         #print(request)
         #print(request.data.decode('utf-8'))
         req_json = json.loads(request.data)
-        print(req_json)
         sb = req_json["sb"]
         sb_bool = True if sb == "True" else False
         fm = find_material(req_json['filename'], req_json['material'], sb_bool)
@@ -227,6 +227,7 @@ def scale_points(max_y, max_x, canvas_height, canvas_width, data):
 
 def find_points_in_selected_area(data, matches):
     print("called find points")
+    print(list([list(d) for d in data]))
     xs = np.array([i[0] for i in data])
     ys = np.array([i[1] for i in data])
     print(xs)
@@ -239,13 +240,31 @@ def find_points_in_selected_area(data, matches):
     median_y =  np.median(ys)
     upper_points = np.array([i for i in data if i[1] > median_y])
     lower_points = np.array([i for i in data if i[1] <= median_y])
+    matches_lower, matches_lower_coords, matches_upper, matches_upper_coords = assign_matches(matches, max_y, min_y, max_x, min_x)
+
+
+def assign_matches(matches, max_y, min_y, max_x, min_x):
+    matches_upper = []
+    matches_upper_coords = []
+    matches_lower = []
+    matches_lower_coords = []
     # don't need to create bounding box.... just need to convert these into correct coordinates
-    for match in matches:
+    for i, match in enumerate(matches):
         match_x = match.x
         match_y = match.y
+        # for tree need 
         if match.y < max_y and match.y > min_y:
-            pass
-
+            if match.x < max_x and match.x > min_x:
+                # try kdtree search: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
+                if match.y > median_y:
+                    # upper
+                    matches_upper.append[i]
+                    matches_upper_coords.append([match.x, match.y])
+                else:
+                    # lower
+                    matches_lower.append[i]
+                    matches_lower_coords.append([match.x, match.y])
+    return matches_lower, matches_lower_coords, matches_upper, matches_upper_coords
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
