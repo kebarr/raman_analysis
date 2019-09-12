@@ -204,13 +204,13 @@ def select_area():
         # TODO: CHECK CAREFULLY NO COORDINATES ARE FLIPPED AT ANY POINT
         # definitely wrong because loc or some matches is (357, 139), (337,23)
         # in numpy array, x is inner coordinate, y is outer
-        max_y = fm.y_max - fm.y_0
-        max_x = fm.x_max - fm.x_0 
-        data = scale_points(max_y, max_x, req_json['canvas_height'], req_json['canvas_width'], data)
+        len_y = abs(fm.y_max - fm.y_0)
+        len_x = abs(fm.x_max - fm.x_0) 
+        data, scale_x, scale_y = scale_points(len_y, len_x, req_json['canvas_height'], req_json['canvas_width'], data)
         print("loaded")
         # mouse at bottom right corner does not correspond to canvas width and canvas height
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
-        find_points_in_selected_area(data, fm.matches.matches)
+        find_points_in_selected_area(data, fm.matches.matches, len_y, len_x, y_0, x_0)
         return jsonify({"blah": json.dumps(list(data))})
 
 def scale_points(max_y, max_x, canvas_height, canvas_width, data):
@@ -219,11 +219,11 @@ def scale_points(max_y, max_x, canvas_height, canvas_width, data):
     scale_y = max_y/canvas_width
     print(scale_x, ' ', scale_y)
     data_scaled = np.array([[int(scale_y*d[0]), int(scale_x*d[1])] for d in data])
-    return data_scaled
+    return data_scaled, scale_x, scale_y
 
 
 
-def find_points_in_selected_area(data, matches):
+def find_points_in_selected_area(data, matches, len_y, len_x, y_0, x_0, scale_x, scale_y):
     print("called find points")
     print(list([list(d) for d in data]))
     xs = np.array([i[0] for i in data])
@@ -234,11 +234,13 @@ def find_points_in_selected_area(data, matches):
     max_y = np.max(ys)
     min_y = np.min(ys)
     max_x = np.max(xs)
-    min_x = np.max(xs)
+    min_x = np.min(xs)
     median_y =  np.median(ys)
     print("all points: ", len(data))
     upper_points = np.array([i for i in data if i[1] > median_y])
     lower_points = np.array([i for i in data if i[1] <= median_y])
+    # this is how location is found for image plotting: x = nt(self.x_scale_factor*(match.x- self.x_0)) y = int(self.y_scale_factor*(match.y-self.y_0))
+    # y_0 is fm.y_0,  
     print(len(upper_points))
     print("lower: ", len(lower_points))
     potential_matches_lower, matches_lower_coords, potential_matches_upper, matches_upper_coords, excluded = assign_matches(matches, max_y, min_y, max_x, min_x)
@@ -283,7 +285,8 @@ def assign_matches(matches, max_y, min_y, max_x, min_x):
     for i, match in enumerate(matches):
         match_x = match.x
         match_y = match.y
-        # for tree need 
+        if i < 10:
+            print("match data: ", i, match.x, match.y)
         if match.y < max_y and match.y > min_y:
             if match.x < max_x and match.x > min_x:
                 # try kdtree search: https://stackoverflow.com/questions/10818546/finding-index-of-nearest-point-in-numpy-arrays-of-x-and-y-coordinates
