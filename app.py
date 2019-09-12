@@ -240,14 +240,38 @@ def find_points_in_selected_area(data, matches):
     median_y =  np.median(ys)
     upper_points = np.array([i for i in data if i[1] > median_y])
     lower_points = np.array([i for i in data if i[1] <= median_y])
-    matches_lower, matches_lower_coords, matches_upper, matches_upper_coords = assign_matches(matches, max_y, min_y, max_x, min_x)
+    potential_matches_lower, matches_lower_coords, potential_matches_upper, matches_upper_coords, excluded = assign_matches(matches, max_y, min_y, max_x, min_x)
+    in_lower_region, excluded = matches_in_region(potential_matches_lower, matches_lower_coords, lower_points, "lower", excluded)
+    in_upper_region, excluded = matches_in_region(potential_matches_upper, matches_upper_coords, upper_points, "upper", excluded)
+    print("in lower: %d, in upper %d, excluded %d" %(len(in_lower_region), len(in_upper_region), len(excluded)))
 
+def matches_in_region(matches_indices, matches_coords, points, upper_lower, excluded):
+    if len(points) > 0:
+        tree = spatial.cKDTree(points)
+        dist, indexes = tree.query(matches_coords)
+        in_region = []
+        for point_index, coord, match_index in zip(indexes, matches_coords, matches_indices):
+            if upper_lower == "upper":
+                if points[index][1] <= coord[1]:
+                    in_region.append(match_index)
+                else:
+                    excluded.append(match_index)
+            else:
+                if points[index][1] >= coord[1]:
+                    in_region.append(match_index)
+                else:
+                    excluded.append(match_index)
+        return in_region, excluded
+    else:
+        return [], excluded.extend(matches_indices)      
 
+# not sure if this is necessary
 def assign_matches(matches, max_y, min_y, max_x, min_x):
     matches_upper = []
     matches_upper_coords = []
     matches_lower = []
     matches_lower_coords = []
+    excluded = []
     # don't need to create bounding box.... just need to convert these into correct coordinates
     for i, match in enumerate(matches):
         match_x = match.x
@@ -264,7 +288,11 @@ def assign_matches(matches, max_y, min_y, max_x, min_x):
                     # lower
                     matches_lower.append[i]
                     matches_lower_coords.append([match.x, match.y])
-    return matches_lower, matches_lower_coords, matches_upper, matches_upper_coords
+            else:
+                excluded.append(i)
+        else:
+            excluded.append(i)
+    return matches_lower, matches_lower_coords, matches_upper, matches_upper_coords, excluded
 
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
