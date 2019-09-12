@@ -229,7 +229,7 @@ class FindMaterial(object):
             peak2_final = peak2_int[np.where(peak2_int <130)]
             if len(peak1_final) != 0 and len(peak2_final) != 0:
                 if to_match[peak1_final[0]] > to_match[peak2_final[0]]:             
-                    return True, conv, [to_match[peak1_final[0]], to_match[peak2_final[0]]]
+                    return True, conv, [to_match[peak1_final[0]], to_match[peak2_final[0]], self.spectra[index][peak1_final[0]+self.lowest_index], self.spectra[index][peak2_final[0]+ self.lowest_index]]
             return False, conv, peaks
         return False, [], []
 
