@@ -165,10 +165,10 @@
 
     <script type=text/javascript>
     let path = [];
-
+    var canvas = document.getElementById('uploaded_image');
 function draw(img_src) {
     console.log("in draw")
-  var canvas = document.getElementById('uploaded_image');
+  
   if (!canvas.getContext) {
       throw new Error("Cannot get canvas Context");
   }
@@ -237,11 +237,12 @@ function draw(img_src) {
 
 $(function() {
     $('#select-area-btn').click(function(){
-        console.log(JSON.stringify(path, null, '\t'));
+        console.log({"data": JSON.stringify(path, null, '\t'), "canvas_height": canvas.height, "canvas_width":canvas.width, "filename": document.getElementById("filename").value, "material": document.getElementById("material").value, "sb": document.getElementById("sb").value});
                   $.ajax({
                   type: 'POST',
                   url: '/selectarea',
-                  data: JSON.stringify(path, null, '\t'),
+                  // send path data, things necessary to get FM (and therefore matches), and canvas data for scaling
+                  data: JSON.stringify({"data": JSON.stringify(path, null, '\t'), "canvas_height": canvas.height, "canvas_width":canvas.width, "filename": document.getElementById("filename").value, "material": document.getElementById("material").value, "sb": document.getElementById("sb").value}, null, '\t'),
                   contentType: 'application/json;charset=UTF-8',
                   success: function(data) {
                       var res = document.getElementById("inside_area")

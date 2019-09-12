@@ -4,7 +4,7 @@ import io
 from io import BytesIO
 import os
 
-
+import json
 from werkzeug.utils import secure_filename
 from convolution_matching import FindMaterial
 from flask_caching import Cache
@@ -195,14 +195,17 @@ def plot_example_match(fm):
 def select_area():
     if request.method == 'POST':
         print("select are called")
-        print(request.json)
-        data = np.array(json.loads(request.json))
+        print(request)
+        print(request.data.decode('utf-8'))
+        data = np.array(json.loads(request.data)["data"])
+        print("loaded")
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
-        find_points_in_selected_area(data)
-        return jsonify({"path": request.json})
+        find_points_in_selected_area(data["data"])
+        return jsonify({"blah": "blah"})
 
 
 def find_points_in_selected_area(data):
+    print("called find points")
     xs = np.array([i[0] for i in data])
     ys = np.array([i[1] for i in data])
     max_y = np.max(ys)
