@@ -196,6 +196,23 @@ def select_area():
     if request.method == 'POST':
         print("select are called")
         print(request.json)
+        data = np.array(json.loads(request.json))
+        # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
+        find_points_in_selected_area(data)
+        return jsonify({"path": request.json})
+
+
+def find_points_in_selected_area(data):
+    xs = np.array([i[0] for i in data])
+    ys = np.array([i[1] for i in data])
+    max_y = np.max(ys)
+    min_y = np.min(ys)
+    max_x = np.max(xs)
+    min_x = np.max(xs)
+    median_y =  np.median(ys)
+    upper_points = np.array([i for i in data if i[1] > median_y])
+    lower_points = np.array([i for i in data if i[1] <= median_y])
+    # don't need to create bounding box.... just need to convert these into correct coordinates
 
 
 @app.route('/uploadajax', methods = ['POST'])

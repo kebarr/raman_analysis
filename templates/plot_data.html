@@ -131,6 +131,11 @@
             <button  id="select-area-btn" class="btn btn-primary start">Compare inside and outside selected area</button>
         </div>
         </blockquote>
+        <blockquote> 
+            <div id="inside_area"> </div>
+            <div id="outside_area"> </div>
+
+        </blockquote>
 
         {% else %}
         <blockquote> No matches found </blockquote>
@@ -206,7 +211,7 @@ function draw(img_src) {
     y = (e.pageY - offset.top) 
 
     draw(prevX, prevY, x, y)
-    path.push([prevX, prevY, x, y])
+    path.push([x, y])
   }, false);
   canvas.addEventListener("mousedown", function (e) {
     drawing = true;
@@ -239,6 +244,8 @@ $(function() {
                   data: JSON.stringify(path, null, '\t'),
                   contentType: 'application/json;charset=UTF-8',
                   success: function(data) {
+                      var res = document.getElementById("inside_area")
+                      res.innerHTML = data.path
                   console.log('Success!');
           },
       });
