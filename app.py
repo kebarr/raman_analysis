@@ -190,10 +190,17 @@ def plot_example_match(fm):
         return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False) 
     return render_template('plot_data.html', number_matches_med=number_matches_med, number_matches_high=number_matches_high, all_matches= all_matches, template = template,  number_locations=fm.len, match_example=data, filename=fm.data_filename, material="graphene_oxide", subtract_baseline=False, match1 = match1.to_dict(), match2=match2.to_dict())
 
+
+@app.route('/selectarea', methods = ['POST'])
+def select_area():
+    if request.method == 'POST':
+        print("select are called")
+        print(request.json)
+
+
 @app.route('/uploadajax', methods = ['POST'])
 def upload_image():
     if request.method == 'POST':
-        print("in first conditional")
         if request.files['file'] is not None:
             files = request.files['file']
             if files:
