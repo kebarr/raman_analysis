@@ -196,8 +196,6 @@ def plot_example_match(fm):
 def select_area():
     if request.method == 'POST':
         print("select are called")
-        #print(request)
-        #print(request.data.decode('utf-8'))
         req_json = json.loads(request.data)
         sb = req_json["sb"]
         sb_bool = True if sb == "True" else False
@@ -238,15 +236,23 @@ def find_points_in_selected_area(data, matches):
     max_x = np.max(xs)
     min_x = np.max(xs)
     median_y =  np.median(ys)
+    print("all points: ", len(data))
     upper_points = np.array([i for i in data if i[1] > median_y])
     lower_points = np.array([i for i in data if i[1] <= median_y])
+    print(len(upper_points))
+    print("lower: ", len(lower_points))
     potential_matches_lower, matches_lower_coords, potential_matches_upper, matches_upper_coords, excluded = assign_matches(matches, max_y, min_y, max_x, min_x)
+    print(len(potential_matches_lower), len(matches_lower_coords), len(potential_matches_upper), len(matches_upper_coords))
+    print("len excluded: ", len(excluded))
     in_lower_region, excluded = matches_in_region(potential_matches_lower, matches_lower_coords, lower_points, "lower", excluded)
     in_upper_region, excluded = matches_in_region(potential_matches_upper, matches_upper_coords, upper_points, "upper", excluded)
     print("in lower: %d, in upper %d, excluded %d" %(len(in_lower_region), len(in_upper_region), len(excluded)))
 
 def matches_in_region(matches_indices, matches_coords, points, upper_lower, excluded):
-    if len(points) > 0:
+    print(len(excluded), type(excluded))
+    print(matches_coords)
+    print(points[:10])
+    if len(matches_coords) > 0:
         tree = spatial.cKDTree(points)
         dist, indexes = tree.query(matches_coords)
         in_region = []
@@ -263,7 +269,8 @@ def matches_in_region(matches_indices, matches_coords, points, upper_lower, excl
                     excluded.append(match_index)
         return in_region, excluded
     else:
-        return [], excluded.extend(matches_indices)      
+        excluded.extend(matches_indices)  
+        return [], excluded  
 
 # not sure if this is necessary
 def assign_matches(matches, max_y, min_y, max_x, min_x):
