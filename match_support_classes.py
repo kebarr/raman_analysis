@@ -60,7 +60,7 @@ class MatchImage(object):
         # need to upsample data rather than resize image as otherwise it is unacceptably blurry
         self.x_scale_factor = float(len(self.im_array))/(self.len_x+1)
         self.y_scale_factor = float(len(self.im_array[0]))/(self.len_y+1)
-        print("x scale foctore: %f, y scale factor %f" % (self.x_scale_factor, self.y_scale_factor))
+        print("x scale foctor: %f, y scale factor %f" % (self.x_scale_factor, self.y_scale_factor))
 
     def create_blank_image(self, len_x, len_y):
         print("creating blank image: %d, %d " % (len_x, len_y))
@@ -76,13 +76,13 @@ class MatchImage(object):
         if con > 60:
             contrast = 100
         elif con > 50:
-            contrast = 20
+            contrast = 40
         elif con > 35:
-            contrast = 10 
+            contrast = 20 
         elif con > 20:
-            contrast = 5
+            contrast = 10
         else:
-            contrast = 1 
+            contrast = 5 
         # just override previous value in image
         self.im_array[int(self.x_scale_factor*(match.x- self.x_0)), int(self.y_scale_factor*(match.y-self.y_0))] = [57, 255, 20, np.uint8(con*0.01*255)]
         x_to_add = int(self.x_scale_factor+2)
