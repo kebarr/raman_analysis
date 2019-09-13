@@ -196,7 +196,6 @@ def plot_example_match(fm):
 @app.route('/selectarea', methods = ['POST'])
 def select_area():
     if request.method == 'POST':
-        print("select are called")
         req_json = json.loads(request.data)
         sb = req_json["sb"]
         sb_bool = True if sb == "True" else False
@@ -208,24 +207,17 @@ def select_area():
         len_y = abs(fm.y_max - fm.y_0)
         len_x = abs(fm.x_max - fm.x_0) 
         data, scale_x, scale_y = scale_points(len_y, len_x, req_json['canvas_height'], req_json['canvas_width'], data)
-        print("loaded")
         match_coords_scaled = [[(match.y- fm.y_0), (match.x-fm.x_0)] for match in fm.matches.matches]
         p = path.Path(data)
         within_path_bool = p.contains_points(match_coords_scaled)
-        print(within_path_bool)
         within_path = [i for i, b in enumerate(within_path_bool) if b==True]
-        print(len(within_path))
-        print(match_coords_scaled[-10:])
-        print(data[-10:])
         # mouse at bottom right corner does not correspond to canvas width and canvas height
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
         return jsonify({"inside": len(within_path), "outside": len(match_coords_scaled) - len(within_path)})
 
 def scale_points(max_y, max_x, canvas_height, canvas_width, data):
-    print("max x: %d max y %d canvas height %d canvas width %d: " % (max_x, max_y, canvas_height, canvas_width))
     scale_x = max_x/canvas_height
     scale_y = max_y/canvas_width
-    print(scale_x, ' ', scale_y)
     data_scaled = [(int(scale_y*d[0]), int(scale_x*d[1])) for d in data]
     #print(data_scaled[-10:])
     return data_scaled, scale_x, scale_y
