@@ -219,7 +219,7 @@ def scale_points(max_y, max_x, canvas_height, canvas_width, data):
     scale_y = max_y/canvas_width
     print(scale_x, ' ', scale_y)
     data_scaled = np.array([[int(scale_y*d[0]), int(scale_x*d[1])] for d in data])
-    print(data_scaled[:10])
+    print(data_scaled[-10:])
     return data_scaled, scale_x, scale_y
 
 
@@ -235,12 +235,12 @@ def find_points_in_selected_area(data, matches, y_0, x_0, scale_x, scale_y):
     print("all points: ", len(data))
     upper_points = np.array([i for i in data if i[1] > median_y])
     lower_points = np.array([i for i in data if i[1] <= median_y])
-    match_coords_scaled = [[scale_x*(match.x- x_0), scale_y*(match.y- y_0)] for match in matches]
+    match_coords_scaled = [[(match.x- x_0), (match.y- y_0)] for match in matches]
     print("x max: ", np.max([y[0] for y in match_coords_scaled]))
     print(np.max([y[1] for y in match_coords_scaled]))
     print("x min: ", np.min([y[0] for y in match_coords_scaled]))
     print(np.min([y[1] for y in match_coords_scaled]))
-    print("dhskjdfskjjkfd: ", match_coords_scaled[:10])
+    print("dhskjdfskjjkfd: ", match_coords_scaled[-10:])
     # this is how location is found for image plotting: x = nt(self.x_scale_factor*(match.x- self.x_0)) y = int(self.y_scale_factor*(match.y-self.y_0))
     # y_0 is fm.y_0,  
     print(len(upper_points))
@@ -289,7 +289,7 @@ def assign_matches(matches, max_y, min_y, max_x, min_x, median_y):
     for i, match in enumerate(matches):
         match_x = match[0]
         match_y = match[1]
-        if i < 10:
+        if i > len(matches)-10:
             print("match data: ", i, match_x, match_y)
         if match_y < max_y and match_y > min_y:
             if match_x < max_x and match_x > min_x:
