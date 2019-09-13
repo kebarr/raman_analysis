@@ -12,6 +12,7 @@ from flask_caching import Cache
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib import path
 import pandas as pd
 import numpy as np
 import scipy
@@ -208,9 +209,14 @@ def select_area():
         len_x = abs(fm.x_max - fm.x_0) 
         data, scale_x, scale_y = scale_points(len_y, len_x, req_json['canvas_height'], req_json['canvas_width'], data)
         print("loaded")
+        match_coords_scaled = [[(match.x- fm.x_0), (match.y- fm.y_0)] for match in fm.matches.matches]
+        within_path_bool = data.contains_points(match_coords_scaled)
+        print(within_path_bool)
+        within_path = [i for i, b in enumerate(within_path_bool) if b==True]
+        print(len(within_path))
         # mouse at bottom right corner does not correspond to canvas width and canvas height
         # also need to convert these points into points in raman spectrum- just scale by canvas dimensions
-        find_points_in_selected_area(data, fm.matches.matches,fm.y_0, fm.x_0, scale_x, scale_y)
+        #find_points_in_selected_area(data, fm.matches.matches,fm.y_0, fm.x_0, scale_x, scale_y)
         return jsonify({"blah": json.dumps(list(data))})
 
 def scale_points(max_y, max_x, canvas_height, canvas_width, data):
@@ -218,8 +224,8 @@ def scale_points(max_y, max_x, canvas_height, canvas_width, data):
     scale_x = max_x/canvas_height
     scale_y = max_y/canvas_width
     print(scale_x, ' ', scale_y)
-    data_scaled = np.array([[int(scale_y*d[0]), int(scale_x*d[1])] for d in data])
-    print(data_scaled[-10:])
+    data_scaled = path.Path([(int(scale_y*d[0]), int(scale_x*d[1])) for d in data])
+    #print(data_scaled[-10:])
     return data_scaled, scale_x, scale_y
 
 
@@ -232,6 +238,7 @@ def find_points_in_selected_area(data, matches, y_0, x_0, scale_x, scale_y):
     max_x = np.max(xs)
     min_x = np.min(xs)
     median_y =  np.median(ys)
+    median_x = np.median(xs)
     print("all points: ", len(data))
     upper_points = np.array([i for i in data if i[0] > median_y])
     lower_points = np.array([i for i in data if i[0] <= median_y])
