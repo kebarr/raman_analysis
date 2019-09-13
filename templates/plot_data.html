@@ -129,6 +129,7 @@
             </div>
             <div id="success" style="display:none">
             <button  id="select-area-btn" class="btn btn-primary start">Compare inside and outside selected area</button>
+            <div> Please make sure you use a closed path (the ends join) otherwise the algorithm to find points inside it will not work. Refresh the page if you want to start your path again</div>
         </div>
         </blockquote>
         <blockquote> 
@@ -245,8 +246,10 @@ $(function() {
                   data: JSON.stringify({"data": JSON.stringify(path, null, '\t'), "canvas_height": canvas.height, "canvas_width":canvas.width, "filename": document.getElementById("filename").value, "material": document.getElementById("material").value, "sb": document.getElementById("sb").value}, null, '\t'),
                   contentType: 'application/json;charset=UTF-8',
                   success: function(data) {
-                      var res = document.getElementById("inside_area")
-                      res.innerHTML = data.blah
+                      var inside = document.getElementById("inside_area")
+                      inside.innerHTML = data.inside + " matches inside selected area"   
+                      var outside = document.getElementById("outside_area")
+                      outside.innerHTML = data.outside + " matches outside selected area"   
                   console.log('Success!');
           },
       });
