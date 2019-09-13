@@ -225,16 +225,16 @@ def scale_points(max_y, max_x, canvas_height, canvas_width, data):
 
 
 def find_points_in_selected_area(data, matches, y_0, x_0, scale_x, scale_y):
-    xs = np.array([i[0] for i in data])
-    ys = np.array([i[1] for i in data])
+    xs = np.array([i[1] for i in data])
+    ys = np.array([i[0] for i in data])
     max_y = np.max(ys)
     min_y = np.min(ys)
     max_x = np.max(xs)
     min_x = np.min(xs)
     median_y =  np.median(ys)
     print("all points: ", len(data))
-    upper_points = np.array([i for i in data if i[1] > median_y])
-    lower_points = np.array([i for i in data if i[1] <= median_y])
+    upper_points = np.array([i for i in data if i[0] > median_y])
+    lower_points = np.array([i for i in data if i[0] <= median_y])
     match_coords_scaled = [[(match.x- x_0), (match.y- y_0)] for match in matches]
     print("x max: ", np.max([y[0] for y in match_coords_scaled]))
     print(np.max([y[1] for y in match_coords_scaled]))
@@ -256,24 +256,32 @@ def matches_in_region(matches_indices, matches_coords, points, upper_lower, excl
     print(len(excluded), type(excluded))
     print(matches_coords)
     print(points[:10])
-    if len(matches_coords) > 0:
-        tree = spatial.cKDTree(points)
-        dist, indexes = tree.query(matches_coords)
-        in_region = []
-        for point_index, coord, match_index in zip(indexes, matches_coords, matches_indices):
-            print(point_index, coord, match_index)
-            print("points at point index: ", points[point_index])
-            if upper_lower == "upper":
-                if points[point_index][1] <= coord[1]:
-                    in_region.append(match_index)
+    if len(points) > 0:
+        if len(matches_coords) > 0:
+            tree = spatial.cKDTree(points)
+            dist, indexes = tree.query(matches_coords)
+            in_region = []
+            for point_index, coord, match_index in zip(indexes, matches_coords, matches_indices):
+                #print(point_index, coord, match_index)
+                #print("points at point index: ", points[point_index])
+                if upper_lower == "upper":
+                    if points[point_index][0] >= coord[0]:
+                        print("point upper: ", (points[point_index]))
+                        print(coord)
+                        in_region.append(match_index)
+                    else:
+                        excluded.append(match_index)
                 else:
-                    excluded.append(match_index)
-            else:
-                if points[point_index][1] >= coord[1]:
-                    in_region.append(match_index)
-                else:
-                    excluded.append(match_index)
-        return in_region, excluded
+                    if points[point_index][0] < coord[0]:
+                        print("point lower: ", (points[point_index]))
+                        print(coord)
+                        in_region.append(match_index)
+                    else:
+                        excluded.append(match_index)
+            return in_region, excluded
+        else:
+            excluded.extend(matches_indices)  
+            return [], excluded  
     else:
         excluded.extend(matches_indices)  
         return [], excluded  
