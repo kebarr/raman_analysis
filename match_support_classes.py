@@ -40,7 +40,8 @@ class Matches(object):
 
     
         
-
+### TODO- this crashes for x0 = -956, y0=-438, xmax=-840, ymax=-128, len x =123, len y = 310,
+# index 367 is out of bounds for array size 351
 class MatchImage(object):
     def __init__(self, x_0, y_0, x_max, y_max):
         self.x_0 = x_0
@@ -67,7 +68,7 @@ class MatchImage(object):
         # need to work out dimensions of image
         self.x_scale_factor = float(len_x)/(self.len_x+1)
         self.y_scale_factor = float(len_y)/(self.len_y+1)
-        self.im_array = np.array([[[0, 0, 0, 255] for i in range(int(len_y))] for j in range(int(len_x))])
+        self.im_array = np.array([[[0, 0, 0, 255] for i in range(int(abs(len_y)))] for j in range(int(abs(len_x)))])
         print(self.im_array.shape)
 
     def add_value_to_image(self, match):
