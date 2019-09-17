@@ -196,7 +196,7 @@ def plot_example_match(fm):
 @app.route('/selectarea', methods = ['POST'])
 def select_area():
     if request.method == 'POST':
-        req_json = json.loads(request.data)
+        req_json = json.loads(request.data.decode('utf-8'))
         sb = req_json["sb"]
         sb_bool = True if sb == "True" else False
         fm = find_material(req_json['filename'], req_json['material'], sb_bool)
