@@ -204,10 +204,13 @@ def select_area():
         # TODO: CHECK CAREFULLY NO COORDINATES ARE FLIPPED AT ANY POINT
         # definitely wrong because loc or some matches is (357, 139), (337,23)
         # in numpy array, x is inner coordinate, y is outer
-        len_y = abs(fm.y_max - fm.y_0)
-        len_x = abs(fm.x_max - fm.x_0) 
-        data, scale_x, scale_y = scale_points(len_y, len_x, req_json['canvas_height'], req_json['canvas_width'], data)
-        match_coords_scaled = [[(match.y- fm.y_0), (match.x-fm.x_0)] for match in fm.matches.matches]
+        len_y = fm.y_max - fm.y_0
+        len_x = fm.x_max - fm.x_0
+        len_y_abs = abs(len_y)
+        len_x_abs = abs(len_x)
+        # need to offset x/y 0 if they are -ve
+        data, scale_x, scale_y = scale_points(len_y_abs, len_x_abs, req_json['canvas_height'], req_json['canvas_width'], data)
+        match_coords_scaled = [[abs(match.y- fm.y_0), abs(match.x-fm.x_0)] for match in fm.matches.matches]
         p = path.Path(data)
         within_path_bool = p.contains_points(match_coords_scaled)
         within_path = [i for i, b in enumerate(within_path_bool) if b==True]
