@@ -84,12 +84,17 @@ class MatchImage(object):
             contrast = 10
         else:
             contrast = 5 
-        # just override previous value in image
-        self.im_array[int(self.x_scale_factor*(match.x- self.x_0)), int(self.y_scale_factor*(match.y-self.y_0))] = [57, 255, 20, np.uint8(con*0.01*255)]
+        x_coord = int(self.x_scale_factor*(match.x- self.x_0))
+        y_coord = int(self.y_scale_factor*(match.y-self.y_0))
+        try:
+            # just override previous value in image
+            self.im_array[x_coord, y_coord] = [57, 255, 20, np.uint8(con*0.01*255)]
+        except:
+            pass
         x_to_add = int(self.x_scale_factor+2)
         y_to_add = int(self.y_scale_factor+2)
-        if int(self.x_scale_factor*(match.x- self.x_0)) + x_to_add -1 < len(self.im_array):
-            if int(self.y_scale_factor*(match.y- self.y_0)) + y_to_add -1 < len(self.im_array[0]):
+        if x_coord+ x_to_add -1 < len(self.im_array):
+            if y_coord + y_to_add -1 < len(self.im_array[0]):
                 for i in range(x_to_add):
                     for j in range(y_to_add):
                         # as scaled up, need to colous other pixels according to scale factor
