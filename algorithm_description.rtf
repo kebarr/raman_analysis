@@ -1,0 +1,8 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf600
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 A convolution-based fuzzy template matching algorithm was used to identify the representative peaks for GO. This algorithm was implemented in Python 3.7.4 and makes extensive use of the scipy.signal library. First, data containing undefined values were excluded, and the rest were smoothed by a median filter, which removed most cosmic ray spikes. To reduce the computational load for the convolution step, spectra were filtered based on the means of shifts inside and outside the GO region. Then, the individual spectra were clipped to the size of the template, such that they included the location of the characteristic GO peaks. This further reduced the computational load of the convolution step and avoided false positives due to coincidentally similar peaks at other shifts. The clipped spectra were normalised. Finally, the smoothed, filtered, clipped, normalised spectra were convolved with the template. If the value of the maximum of the convolution was greater than a pre defined threshold, then the \'91scipy.signal.find_peaks\'92 function was used to confirm the presence of the representative GO peaks. }
