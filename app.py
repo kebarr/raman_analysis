@@ -232,9 +232,10 @@ def upload_image():
         if request.files['file'] is not None:
             files = request.files['file']
             if files:
+                print("files: %s" % (files))
                 filename = secure_filename(files.filename)
                 filename = gen_file_name(filename)
-                if filename.endswith(".bmp") or filename.endswith(".jpeg"):
+                if filename.lower().endswith(".bmp") or filename.lower().endswith(".jpeg") or filename.lower().endswith(".jpg") or filename.lower().endswith(".png"):
                     mime_type = files.content_type
                     # save file to disk
                     uploaded_file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -310,12 +311,12 @@ def download_high():
             spectrum_string = ''
             for i in match.spectrum:
                 spectrum_string += str(i) + ', '
-            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
+            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0]) + ', ' + str(match.peak_data[1]) + ', ' + str(match.peak_ratio)+ ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
             f.write(line)
-        wavelengths = ', , , , , '
-        for w in fm.wavelengths:
-            wavelengths += ',' + str(w) 
-        f.write(wavelengths)
+        shifts = ', , , , '
+        for w in fm.shifts:
+            shifts += ',' + str(w) 
+        f.write(shifts)
     return send_file('high_conf.csv', as_attachment=True)
 
 @app.route('/download_med', methods = ['POST'])
@@ -334,12 +335,12 @@ def download_med():
             spectrum_string = ''
             for i in match.spectrum:
                 spectrum_string += str(i) + ', '
-            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0][1]) + ', ' + str(match.peak_data[1][1]) + ', ' + str(match.peak_ratio)+ ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
+            line = str(match.x) + ', ' + str(match.y) + ', ' + str(match.peak_data[0]) + ', ' + str(match.peak_data[1]) + ', ' + str(match.peak_ratio)+ ', ' + str(match.confidence) + ', ' + spectrum_string + '\n'
             f.write(line)
-        wavelengths = ', , , , '
-        for w in fm.wavelengths:
-            wavelengths += ',' + str(w) 
-        f.write(wavelengths)
+        shifts = ', , , , '
+        for w in fm.shifts:
+            shifts += ',' + str(w) 
+        f.write(shifts)
     return send_file('med_conf.csv', as_attachment=True)
 
 
